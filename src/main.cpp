@@ -30,7 +30,8 @@ void setup() {
 
     // Set text cursor position
     display.setCursor(0, 0);
-    // Print current time
+
+    // Print initial message
     display.println("Wait for a new serial message to arrive...");
 
     // Swap the buffer
