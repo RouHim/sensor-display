@@ -5,15 +5,17 @@
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE, A5, /* data=*/ A4);
 
 // array of int to store the display addresses
-unsigned int displayAddresses[5];
+byte DISPLAY_ADDRESSES[2];
+byte DISPLAY_FONT_SIZE[2];
 
-void drawStringToDisplay(unsigned int displayIndex, const char *value);
 
-void configureDisplay(const String &message);
+void drawDataToI2cDisplay(unsigned int displayIndex, const char *value);
 
-void drawToDisplays(const String &message);
+void configureI2cDisplays(const String &message);
 
-unsigned int toUInt(const char *address_string);
+void sendToI2cDisplay(const String &message);
+
+void parseDisplayConfig(const String &message, unsigned int index, unsigned int current_char);
 
 void setup(void) {
     // Initialize serial communication
@@ -23,37 +25,42 @@ void setup(void) {
 void loop(void) {
     // Check if there is data available on the serial port
     if (Serial.available() > 0) {
-        String message = Serial.readStringUntil(';');
+        String payload = Serial.readStringUntil(';');
 
-        // Print the serial message that was received
-        Serial.print("Message received: ");
-        Serial.println(message);
+        // Print the serial payload that was received
+        Serial.print(F("Message received: "));
+        Serial.println(payload);
 
-        // Read the first character of the message
-        char messageType = message.charAt(0);
+        // Read the first character of the payload
+        char messageType = payload.charAt(0);
 
-        // Check if the message starts with a 'c'
-        // If so, configure the displays
+        // Check if the payload starts with a 'c'
+        // If so, configure devices
         if (messageType == 'c') {
-            // Print the message type
-            Serial.println("Message type: c");
-
             // Remove the first character
-            message.remove(0, 1);
-            // Configure displays
-            configureDisplay(message);
+            payload.remove(0, 1);
+
+            // If the payload then starts with a 'i', configure the i2c address
+            if (payload.charAt(0) == 'i') {
+                // Remove the first character
+                payload.remove(0, 1);
+                // Configure the i2c address
+                configureI2cDisplays(payload);
+            }
         }
-            // Check if the message starts with a 'd'
+            // Check if the payload starts with a 'd'
             // If so, draw the string to the corresponding display
         else if (messageType == 'd') {
-            // Print the message type
-            Serial.println("Message type: d");
-
             // Remove the first character
-            message.remove(0, 1);
-            // Draw the string to the corresponding display
-            // Example message: 5%,50°C
-            drawToDisplays(message);
+            payload.remove(0, 1);
+
+            // If the payload then starts with a 'i', configure the i2c address
+            if (payload.charAt(0) == 'i') {
+                // Remove the first character
+                payload.remove(0, 1);
+                // Draw the string to the corresponding display
+                sendToI2cDisplay(payload);
+            }
         }
     }
 
@@ -61,24 +68,24 @@ void loop(void) {
 }
 
 // Draw the given string to the display with the given index
-void drawToDisplays(const String &message) {
+void sendToI2cDisplay(const String &message) {
     // Split the message by comma and draw the string to the corresponding display
     unsigned int index = 0;
     unsigned int start = 0;
     for (unsigned int i = 0; i < message.length(); i++) {
         if (message.charAt(i) == ',') {
-            drawStringToDisplay(index, message.substring(start, i).c_str());
+            drawDataToI2cDisplay(index, message.substring(start, i).c_str());
             index++;
             start = i + 1;
         }
     }
-    drawStringToDisplay(index, message.substring(start, message.length()).c_str());
+    drawDataToI2cDisplay(index, message.substring(start, message.length()).c_str());
 }
 
 // Configure the display
 // Example message: "0x5c,0x5d,0x5e"
-void configureDisplay(const String &message) {
-    // Split the message into an array
+void configureI2cDisplays(const String &message) {
+    // Split the message into an array, for all the display addresses
     unsigned int displayCount = 1;
     for (unsigned int i = 0; i < message.length(); i++) {
         if (message.charAt(i) == ',') {
@@ -86,51 +93,52 @@ void configureDisplay(const String &message) {
         }
     }
     unsigned int index = 0;
-    unsigned int start = 0;
+    unsigned int currentChar = 0;
     for (unsigned int i = 0; i < message.length(); i++) {
         if (message.charAt(i) == ',') {
-            displayAddresses[index] = toUInt(message.substring(start, i).c_str());
+            parseDisplayConfig(message, index, currentChar);
+
             index++;
-            start = i + 1;
+            currentChar = i + 1;
         }
     }
-    // print the substring of the last display address
-    displayAddresses[index] = toUInt(message.substring(start, message.length()).c_str());
-
-    // Print the string hex representation of the display addresses
-    for (unsigned int i = 0; i < displayCount; i++) {
-        Serial.print("Display ");
-        Serial.print(i);
-        Serial.print(": ");
-        Serial.println(displayAddresses[i]);
-    }
+    parseDisplayConfig(message, index, currentChar);
 
     // Configure the displays
     for (unsigned int i = 0; i < displayCount; i++) {
-        u8g2.setI2CAddress(displayAddresses[i] * 2);
+        u8g2.setI2CAddress(DISPLAY_ADDRESSES[i] * 2);
         u8g2.begin();
-        u8g2.setFont(u8g2_font_profont22_mf);
+
+        // Parse one of this font sizes 1,2,3
+        switch (DISPLAY_FONT_SIZE[i]) {
+            case 1:
+                u8g2.setFont(u8g2_font_profont10_mf);
+            case 2:
+                u8g2.setFont(u8g2_font_profont17_mf);
+            case 3:
+                u8g2.setFont(u8g2_font_profont29_mf);
+        }
+
         // print Hello and the display index to the display
-        drawStringToDisplay(i, "Waiting...");
+        drawDataToI2cDisplay(i, "...");
     }
 }
 
-/// Convert the given hex string to an unsigned int
-/// Example: "0x5c" -> 92
-unsigned int toUInt(const char *address_string) {
-    long long_representation = strtol(address_string, nullptr, 16);
-    return static_cast<unsigned int>(long_representation);
+void parseDisplayConfig(const String &message, unsigned int index, unsigned int current_char) {
+    const String &display_config = message.substring(current_char, message.length()).c_str();
+    // The first 4 chars of display config represent the display address as hex string prefixed with "0x"
+    DISPLAY_ADDRESSES[index] = strtol(
+            display_config.substring(0, 4).c_str(),
+            nullptr,
+            16
+    );
+    // The last 1 char represent the font size as byte
+    DISPLAY_FONT_SIZE[index] = display_config.substring(4, 5).toInt();
 }
 
 // Draw the given string to the display with the given index
-void drawStringToDisplay(const unsigned int displayIndex, const char *value) {
-    // Print the string to the serial monitor
-    Serial.print("Display ");
-    Serial.print(displayIndex);
-    Serial.print(": ");
-    Serial.println(value);
-
-    u8g2.setI2CAddress(displayAddresses[displayIndex] * 2);
+void drawDataToI2cDisplay(const unsigned int displayIndex, const char *value) {
+    u8g2.setI2CAddress(DISPLAY_ADDRESSES[displayIndex] * 2);
     u8g2.clearBuffer();
     u8g2_uint_t x = (u8g2.getDisplayWidth() - u8g2.getUTF8Width(value)) / 2;
     u8g2_uint_t y = (u8g2.getDisplayHeight() - u8g2.getFontAscent() - u8g2.getFontDescent()) / 2 + u8g2.getFontAscent();
