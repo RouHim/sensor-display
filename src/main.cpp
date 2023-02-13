@@ -111,12 +111,14 @@ void configureI2cDisplays(const String &message) {
 
         // Parse one of this font sizes 1,2,3
         switch (DISPLAY_FONT_SIZE[i]) {
-            case 1:
+            case 0:
                 u8g2.setFont(u8g2_font_profont10_mf);
-            case 2:
+            case 1:
                 u8g2.setFont(u8g2_font_profont17_mf);
-            case 3:
+            case 2:
                 u8g2.setFont(u8g2_font_profont29_mf);
+            default:
+                u8g2.setFont(u8g2_font_profont17_mf);
         }
 
         // print Hello and the display index to the display
