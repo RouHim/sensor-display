@@ -2,7 +2,8 @@
 #include <Arduino.h>
 #include "U8g2lib.h"
 
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE, A5, /* data=*/ A4);
+// Initialize the i2c displays that is connected to the ESP8266 D1 and D2 pins
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE, /* clock=*/ GPIOR05, /* data=*/ GPIOR04);
 
 void drawDataToI2cDisplay(const char *value);
 
