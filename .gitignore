@@ -2,3 +2,7 @@
 CMakeListsPrivate.txt
 cmake-build-*/ 
 .idea
+
+# Added by cargo
+
+/target
