@@ -1,0 +1,14 @@
+[package]
+name = "sensor-display"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serialport = "4.2"    # Write to serial port
+sensor-core = { path = "../sensor-core" }
+#sensor-core = { git = "https://github.com/RouHim/sensor-core.git" }
+rmp-serde = "1.1"
+
+# arm-unknown-linux-gnueabi, arm-musleabi
+# alias rust-musl-builder='docker run --rm -it -v "$(pwd)":/home/rust/src messense/rust-musl-cross:arm-musleabi'
+# rust-musl-builder cargo build --release
