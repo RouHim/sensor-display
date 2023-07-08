@@ -1,7 +1,9 @@
-use image::RgbImage;
+use egui_extras::RetainedImage;
+use image::{ImageOutputFormat};
 use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
 use sensor_core::TransferData;
+use std::io::{Cursor, Seek, SeekFrom};
 use std::sync::{Arc, Mutex};
 
 const PORT: u16 = 10489;
@@ -19,7 +21,10 @@ pub fn listen() -> (NodeHandler<()>, NodeListener<()>) {
     (handler, listener)
 }
 
-pub fn receive(write_image_data_mutex: Arc<Mutex<RgbImage>>, listener: NodeListener<()>) {
+pub fn receive(
+    write_image_data_mutex: Arc<Mutex<Option<RetainedImage>>>,
+    listener: NodeListener<()>,
+) {
     listener.for_each(move |event| {
         match event.network() {
             NetEvent::Connected(_, _) => unreachable!(), // Used for explicit connections.
@@ -39,9 +44,21 @@ pub fn receive(write_image_data_mutex: Arc<Mutex<RgbImage>>, listener: NodeListe
                     end.duration_since(start).as_millis()
                 );
 
+                // Create a Vec<u8> buffer to write the image to it
+                let mut buf = Vec::new();
+                let mut cursor = Cursor::new(&mut buf);
+                image_data
+                    .write_to(&mut cursor, ImageOutputFormat::Png)
+                    .unwrap();
+
+                // Reset the cursor to the beginning of the buffer
+                cursor.seek(SeekFrom::Start(0)).unwrap();
+
+                let image = RetainedImage::from_image_bytes("test", buf.as_slice()).unwrap();
+
                 // Write image data to mutex
                 let mut mutex = write_image_data_mutex.lock().unwrap();
-                *mutex = image_data;
+                *mutex = Some(image);
             }
             NetEvent::Disconnected(_endpoint) => println!("Client disconnected"),
         }
