@@ -11,8 +11,6 @@ message-io = { version = "0.17", default-features = false, features = ["tcp"] }
 image = "0.24"
 eframe = "0.22"
 egui_extras = { version = "0.22", features = ["image"]  }
-poll-promise = "0.2"
-ehttp = "0.2"
 
 # arm-unknown-linux-gnueabi, arm-musleabi
 # alias rust-musl-builder='docker run --rm -it -v "$(pwd)":/home/rust/src messense/rust-musl-cross:arm-musleabi'

@@ -21,8 +21,6 @@ fn main() -> Result<(), eframe::Error> {
         ..Default::default()
     };
 
-    let (_handler, _listener) = tcp_receiver::listen();
-
     // Create arc mutex for image data
     let image_data_mutex: Arc<Mutex<Option<RetainedImage>>> = Arc::new(Mutex::new(None));
 
