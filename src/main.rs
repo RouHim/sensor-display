@@ -5,8 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-
-use eframe::{egui};
+use eframe::egui;
 
 use egui_extras::RetainedImage;
 
@@ -30,7 +29,7 @@ fn main() -> Result<(), eframe::Error> {
         tcp_receiver::receive(write_image_data_mutex, listener);
     });
 
-    eframe::run_simple_native("Sensor Display", options, move |ctx, frame| {
+    eframe::run_simple_native("Sensor Display", options, move |ctx, _frame| {
         ctx.request_repaint_after(Duration::from_millis(100));
         ctx.set_cursor_icon(egui::CursorIcon::None);
         egui::Area::new("main_area")
