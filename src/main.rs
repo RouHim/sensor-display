@@ -1,17 +1,12 @@
 mod tcp_receiver;
 
-
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 
-// create image reader
-
-
-use eframe::{egui, Theme};
-use eframe::egui::Margin;
+use eframe::{egui};
 
 use egui_extras::RetainedImage;
 

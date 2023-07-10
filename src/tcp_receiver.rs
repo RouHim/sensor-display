@@ -1,5 +1,5 @@
 use egui_extras::RetainedImage;
-use image::{ImageOutputFormat};
+use image::ImageOutputFormat;
 use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
 use sensor_core::TransferData;
@@ -58,7 +58,9 @@ pub fn receive(
                 let write_image_to_buffer_time = std::time::Instant::now();
                 println!(
                     "Writing image to buffer took {} ms",
-                    write_image_to_buffer_time.duration_since(lcd_render_time).as_millis()
+                    write_image_to_buffer_time
+                        .duration_since(lcd_render_time)
+                        .as_millis()
                 );
 
                 let image = RetainedImage::from_image_bytes("test", buf.as_slice()).unwrap();
@@ -67,7 +69,9 @@ pub fn receive(
                 let create_retained_image_time = std::time::Instant::now();
                 println!(
                     "Creating RetainedImage took {} ms",
-                    create_retained_image_time.duration_since(write_image_to_buffer_time).as_millis()
+                    create_retained_image_time
+                        .duration_since(write_image_to_buffer_time)
+                        .as_millis()
                 );
 
                 // Write image data to mutex
