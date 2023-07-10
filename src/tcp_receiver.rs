@@ -38,10 +38,10 @@ pub fn receive(
                 let data: TransferData = deserialize(data);
                 let image_data = sensor_core::render_lcd_image(data.lcd_config, data.sensor_values);
 
-                let end = std::time::Instant::now();
+                let lcd_render_time = std::time::Instant::now();
                 println!(
                     "Deserialization and rendering took {} ms",
-                    end.duration_since(start).as_millis()
+                    lcd_render_time.duration_since(start).as_millis()
                 );
 
                 // Create a Vec<u8> buffer to write the image to it
@@ -54,7 +54,21 @@ pub fn receive(
                 // Reset the cursor to the beginning of the buffer
                 cursor.seek(SeekFrom::Start(0)).unwrap();
 
+                // Log time it took to write image to buffer
+                let write_image_to_buffer_time = std::time::Instant::now();
+                println!(
+                    "Writing image to buffer took {} ms",
+                    write_image_to_buffer_time.duration_since(lcd_render_time).as_millis()
+                );
+
                 let image = RetainedImage::from_image_bytes("test", buf.as_slice()).unwrap();
+
+                // Log time it took to create RetainedImage
+                let create_retained_image_time = std::time::Instant::now();
+                println!(
+                    "Creating RetainedImage took {} ms",
+                    create_retained_image_time.duration_since(write_image_to_buffer_time).as_millis()
+                );
 
                 // Write image data to mutex
                 let mut mutex = write_image_data_mutex.lock().unwrap();
