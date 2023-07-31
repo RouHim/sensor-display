@@ -1,15 +1,21 @@
-mod tcp_receiver;
-
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Duration;
+use std::{fs, thread};
 
 use eframe::egui;
-
 use egui_extras::RetainedImage;
 
+mod renderer;
+mod tcp_receiver;
+
 fn main() -> Result<(), eframe::Error> {
+    // Initialize the logger
+    env_logger::init();
+
+    // Cleanup data directory
+    fs::remove_dir_all(sensor_core::ASSET_DATA_DIR).unwrap_or_default(); // Ignore errors
+
     // Fullscreen without border
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(320.0, 240.0)),
