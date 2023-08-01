@@ -1,12 +1,11 @@
-use rayon::prelude::*;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
 use egui_extras::RetainedImage;
 use log::info;
 use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
+use rayon::prelude::*;
 use sensor_core::{AssetData, RenderData, TransportMessage, TransportType};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use crate::renderer::render_image;
 
