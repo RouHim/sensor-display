@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 sensor-core = { git = "https://github.com/RouHim/sensor-core.git" }                 # My own lib used for rendering and core types
-serde = { version = "1.0.176", features = ["derive"] }                              # Serialization
+serde = { version = "1.0.180", features = ["derive"] }                              # Serialization
 rmp-serde = "1.1.2"                                                                 # MessagePack serialization
 rayon = "1.7.0"                                                                     # Parallelization
 message-io = { version = "0.17.0", default-features = false, features = ["tcp"] }   # TCP transport
