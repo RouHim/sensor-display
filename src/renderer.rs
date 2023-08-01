@@ -2,8 +2,9 @@ use egui_extras::RetainedImage;
 use image::ImageOutputFormat;
 use log::info;
 use sensor_core::RenderData;
-use std::io::{Cursor, Seek, SeekFrom};
+use std::io::Cursor;
 use std::sync::{Arc, Mutex};
+use eframe::egui::ColorImage;
 
 pub fn render_image(
     ui_display_image_handle: &Arc<Mutex<Option<RetainedImage>>>,
@@ -17,7 +18,7 @@ pub fn render_image(
 
     let lcd_render_time = std::time::Instant::now();
     info!(
-        "Deserialization and rendering took {} ms",
+        "Rendering took {} ms",
         lcd_render_time.duration_since(start).as_millis()
     );
 
@@ -25,11 +26,8 @@ pub fn render_image(
     let mut buf = Vec::new();
     let mut cursor = Cursor::new(&mut buf);
     image_data
-        .write_to(&mut cursor, ImageOutputFormat::Png)
+        .write_to(&mut cursor, ImageOutputFormat::Bmp)
         .unwrap();
-
-    // Reset the cursor to the beginning of the buffer
-    cursor.seek(SeekFrom::Start(0)).unwrap();
 
     // Log time it took to write image to buffer
     let write_image_to_buffer_time = std::time::Instant::now();
@@ -55,5 +53,6 @@ pub fn render_image(
     let mut mutex = ui_display_image_handle.lock().unwrap();
     *mutex = Some(image);
 
+    info!("Total time: {} ms", create_retained_image_time.duration_since(start).as_millis());
     info!("---");
 }
