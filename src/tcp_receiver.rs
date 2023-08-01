@@ -12,6 +12,8 @@ use crate::renderer::render_image;
 
 const PORT: u16 = 10489;
 
+/// Opens a tcp socket to the specified address
+/// Returns a handler and a listener
 pub fn listen() -> (NodeHandler<()>, NodeListener<()>) {
     // Create a node that will listen for incoming network messages.
     let (handler, listener) = node::split::<()>();
