@@ -1,13 +1,14 @@
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+use crate::renderer;
 use egui_extras::RetainedImage;
-use log::info;
+use log::{info, warn};
 use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
 use rayon::prelude::*;
 use sensor_core::{AssetData, RenderData, TransportMessage, TransportType};
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
-use crate::renderer::render_image;
 
 const PORT: u16 = 10489;
 
@@ -30,34 +31,65 @@ pub fn receive(
     ui_display_image_handle: Arc<Mutex<Option<RetainedImage>>>,
     listener: NodeListener<()>,
 ) {
+    let render_busy_indicator = Arc::new(Mutex::new(false));
+
+    // Iterate indefinitely over all generated NetEvent until NodeHandler::stop() is called.
     listener.for_each(move |event| {
         match event.network() {
             NetEvent::Connected(_, _) => unreachable!(), // Used for explicit connections.
             NetEvent::Accepted(_endpoint, _listener) => info!("Client connected"),
-            NetEvent::Message(_, data) => handle_input_message(&ui_display_image_handle, data),
+            NetEvent::Message(_, data) => {
+                handle_input_message(&ui_display_image_handle, &render_busy_indicator, data)
+            }
             NetEvent::Disconnected(_endpoint) => info!("Client disconnected"),
         }
     });
 }
 
-fn handle_input_message(ui_display_image_handle: &Arc<Mutex<Option<RetainedImage>>>, data: &[u8]) {
+fn handle_input_message(
+    ui_display_image_handle: &Arc<Mutex<Option<RetainedImage>>>,
+    render_busy_indicator: &Arc<Mutex<bool>>,
+    data: &[u8],
+) {
     let transport_message: TransportMessage =
         serde::Deserialize::deserialize(&mut rmp_serde::Deserializer::new(data)).unwrap();
     let transport_type = transport_message.transport_type;
-    let transport_data = transport_message.data.as_slice();
+    let transport_data = transport_message.data;
 
     match transport_type {
         TransportType::PrepareData => {
-            let asset_data: AssetData =
-                serde::Deserialize::deserialize(&mut rmp_serde::Deserializer::new(transport_data))
-                    .unwrap();
+            let asset_data: AssetData = serde::Deserialize::deserialize(
+                &mut rmp_serde::Deserializer::new(transport_data.as_slice()),
+            )
+            .unwrap();
             prepare_assets(asset_data.asset_data);
         }
         TransportType::RenderImage => {
-            let render_data: RenderData =
-                serde::Deserialize::deserialize(&mut rmp_serde::Deserializer::new(transport_data))
-                    .unwrap();
-            render_image(ui_display_image_handle, render_data);
+            // If already rendering, skip this frame
+            if *render_busy_indicator.lock().unwrap() {
+                warn!(
+                    "Received new sensor data, but rendering is still in progress, skipping frame!"
+                );
+                return;
+            }
+
+            let render_busy_indicator = render_busy_indicator.clone();
+            let ui_display_image_handle = ui_display_image_handle.clone();
+
+            thread::spawn(move || {
+                // Begin rendering
+                *render_busy_indicator.lock().unwrap() = true;
+
+                let render_data: RenderData = serde::Deserialize::deserialize(
+                    &mut rmp_serde::Deserializer::new(transport_data.as_slice()),
+                )
+                .unwrap();
+
+                renderer::render_image(&ui_display_image_handle, render_data);
+
+                // End rendering
+                *render_busy_indicator.lock().unwrap() = false;
+            });
         }
     }
 }
