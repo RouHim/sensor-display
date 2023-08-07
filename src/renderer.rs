@@ -12,7 +12,7 @@ pub fn render_image(
     let start = std::time::Instant::now();
 
     let image_data =
-        sensor_core::render_lcd_image(render_data.lcd_config, render_data.sensor_values);
+        sensor_core::render_lcd_image(render_data.lcd_config, &render_data.sensor_value_history);
 
     let lcd_render_time = std::time::Instant::now();
     info!(

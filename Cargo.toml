@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sensor-core = { git = "https://github.com/RouHim/sensor-core.git" }                 # My own lib used for rendering and core types
+sensor-core = { path = "../sensor-core" }                                           # Sensor data processing
 serde = { version = "1.0.180", features = ["derive"] }                              # Serialization
 rmp-serde = "1.1.2"                                                                 # MessagePack serialization
 rayon = "1.7.0"                                                                     # Parallelization
@@ -18,8 +18,8 @@ env_logger = "0.10.0"                                                           
 # cross build --target=arm-unknown-linux-gnueabihf --release
 
 [profile.release]
-panic = "abort" # Strip expensive panic clean-up logic
-codegen-units = 1 # Compile crates one after another so the compiler can optimize better
-lto = true # Enables link to optimizations
-strip = true # Strip debug symbols
-#debug = true
+#panic = "abort" # Strip expensive panic clean-up logic
+#codegen-units = 1 # Compile crates one after another so the compiler can optimize better
+#lto = true # Enables link to optimizations
+#strip = true # Strip debug symbols
+debug = true
