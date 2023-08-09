@@ -2,13 +2,17 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::renderer;
 use egui_extras::RetainedImage;
 use log::{info, warn};
 use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
 use rayon::prelude::*;
-use sensor_core::{AssetData, RenderData, TransportMessage, TransportType};
+use sensor_core::{
+    ElementType, PrepareConditionalImageData, PrepareStaticImageData, RenderData, TransportMessage,
+    TransportType,
+};
+
+use crate::renderer;
 
 const PORT: u16 = 10489;
 
@@ -57,12 +61,21 @@ fn handle_input_message(
     let transport_data = transport_message.data;
 
     match transport_type {
-        TransportType::PrepareData => {
-            let asset_data: AssetData = serde::Deserialize::deserialize(
+        TransportType::PrepareStaticImage => {
+            let prep_data: PrepareStaticImageData = serde::Deserialize::deserialize(
                 &mut rmp_serde::Deserializer::new(transport_data.as_slice()),
             )
             .unwrap();
-            prepare_assets(asset_data.asset_data);
+
+            prepare_static_images(prep_data.images_data);
+        }
+        TransportType::PrepareConditionalImage => {
+            let prep_data: PrepareConditionalImageData = serde::Deserialize::deserialize(
+                &mut rmp_serde::Deserializer::new(transport_data.as_slice()),
+            )
+            .unwrap();
+
+            prepare_conditional_images(prep_data.images_data);
         }
         TransportType::RenderImage => {
             // If already rendering, skip this frame
@@ -94,18 +107,38 @@ fn handle_input_message(
     }
 }
 
-/// Prepare assets for rendering.
-/// This is done by storing each asset with its asset / element id in the data folder on the filesystem
-fn prepare_assets(assets: HashMap<String, Vec<u8>>) {
-    let start = std::time::Instant::now();
+/// Prepare static images for rendering.
+/// This is done by storing each asset with its element id in the data folder on the filesystem
+fn prepare_static_images(assets: HashMap<String, Vec<u8>>) {
+    // Ensure data folder exists and is empty
+    assets.par_iter().for_each(|(element_id, asset_data)| {
+        let element_cache_dir = sensor_core::get_cache_dir(element_id, ElementType::StaticImage);
+        let image_file_path = element_cache_dir.join(element_id);
 
-    // Ensure data folder exists
-    std::fs::create_dir_all(sensor_core::ASSET_DATA_DIR).unwrap();
+        // Ensure cache dir exists and is empty
+        std::fs::remove_dir_all(&element_cache_dir).unwrap_or_default();
+        std::fs::create_dir_all(&element_cache_dir).unwrap();
 
-    assets.par_iter().for_each(|(asset_id, asset_data)| {
-        let asset_path = format!("{}/{}", sensor_core::ASSET_DATA_DIR, asset_id);
-        std::fs::write(asset_path, asset_data).unwrap();
+        std::fs::write(image_file_path, asset_data).unwrap();
     });
+}
 
-    info!("Prepared assets in {}ms", start.elapsed().as_millis());
+/// Prepare conditional images for rendering.
+/// This is done by storing each asset with its element id in the data folder on the filesystem
+fn prepare_conditional_images(assets: HashMap<String, HashMap<String, Vec<u8>>>) {
+    assets.par_iter().for_each(|element| {
+        let element_id = element.0;
+        let element_cache_dir =
+            sensor_core::get_cache_dir(element_id, ElementType::ConditionalImage);
+
+        // Ensure cache dir exists and is empty
+        std::fs::remove_dir_all(&element_cache_dir).unwrap_or_default();
+        std::fs::create_dir_all(&element_cache_dir).unwrap();
+
+        element.1.par_iter().for_each(|asset| {
+            let file_path = element_cache_dir.join(asset.0);
+            let file_data = asset.1;
+            std::fs::write(file_path, file_data).unwrap();
+        })
+    })
 }

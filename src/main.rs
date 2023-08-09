@@ -14,7 +14,7 @@ fn main() -> Result<(), eframe::Error> {
     env_logger::init();
 
     // Cleanup data directory
-    fs::remove_dir_all(sensor_core::ASSET_DATA_DIR).unwrap_or_default(); // Ignore errors
+    fs::remove_dir_all(sensor_core::get_cache_base_dir()).unwrap_or_default(); // Ignore errors
 
     // Fullscreen without border
     let options = eframe::NativeOptions {
