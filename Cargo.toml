@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 sensor-core = { path = "../sensor-core" }                                           # Sensor data processing
-serde = { version = "1.0.180", features = ["derive"] }                              # Serialization
-rmp-serde = "1.1.2"                                                                 # MessagePack serialization
+serde = { version = "1.0.180", features = ["derive"] }                              # De/Serialization
+bincode = "1.3.3"                                                                   # Bincode De/Serialization
 rayon = "1.7.0"                                                                     # Parallelization
 message-io = { version = "0.17.0", default-features = false, features = ["tcp"] }   # TCP transport
 image = "0.24.6"                                                                    # Image processing
@@ -18,8 +18,8 @@ env_logger = "0.10.0"                                                           
 # cross build --target=arm-unknown-linux-gnueabihf --release
 
 [profile.release]
-#panic = "abort" # Strip expensive panic clean-up logic
-#codegen-units = 1 # Compile crates one after another so the compiler can optimize better
-#lto = true # Enables link to optimizations
-#strip = true # Strip debug symbols
-debug = true
+panic = "abort" # Strip expensive panic clean-up logic
+codegen-units = 1 # Compile crates one after another so the compiler can optimize better
+lto = true # Enables link to optimizations
+strip = true # Strip debug symbols
+#debug = true

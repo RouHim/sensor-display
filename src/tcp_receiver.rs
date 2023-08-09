@@ -8,8 +8,8 @@ use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
 use rayon::prelude::*;
 use sensor_core::{
-    ElementType, PrepareConditionalImageData, PrepareStaticImageData, RenderData, TransportMessage,
-    TransportType,
+    ElementType, PrepareConditionalImageData, PrepareStaticImageData, RenderData, SensorValue,
+    TransportMessage, TransportType,
 };
 
 use crate::renderer;
@@ -36,15 +36,19 @@ pub fn receive(
     listener: NodeListener<()>,
 ) {
     let render_busy_indicator = Arc::new(Mutex::new(false));
+    let sensor_value_history: Arc<Mutex<Vec<Vec<SensorValue>>>> = Arc::new(Mutex::new(Vec::new()));
 
     // Iterate indefinitely over all generated NetEvent until NodeHandler::stop() is called.
     listener.for_each(move |event| {
         match event.network() {
             NetEvent::Connected(_, _) => unreachable!(), // Used for explicit connections.
             NetEvent::Accepted(_endpoint, _listener) => info!("Client connected"),
-            NetEvent::Message(_, data) => {
-                handle_input_message(&ui_display_image_handle, &render_busy_indicator, data)
-            }
+            NetEvent::Message(_, data) => handle_input_message(
+                &ui_display_image_handle,
+                &render_busy_indicator,
+                &sensor_value_history,
+                data,
+            ),
             NetEvent::Disconnected(_endpoint) => info!("Client disconnected"),
         }
     });
@@ -53,27 +57,23 @@ pub fn receive(
 fn handle_input_message(
     ui_display_image_handle: &Arc<Mutex<Option<RetainedImage>>>,
     render_busy_indicator: &Arc<Mutex<bool>>,
+    sensor_value_history: &Arc<Mutex<Vec<Vec<SensorValue>>>>,
     data: &[u8],
 ) {
-    let transport_message: TransportMessage =
-        serde::Deserialize::deserialize(&mut rmp_serde::Deserializer::new(data)).unwrap();
+    let transport_message: TransportMessage = bincode::deserialize(data).unwrap();
     let transport_type = transport_message.transport_type;
     let transport_data = transport_message.data;
 
     match transport_type {
         TransportType::PrepareStaticImage => {
-            let prep_data: PrepareStaticImageData = serde::Deserialize::deserialize(
-                &mut rmp_serde::Deserializer::new(transport_data.as_slice()),
-            )
-            .unwrap();
+            let prep_data: PrepareStaticImageData =
+                bincode::deserialize(transport_data.as_slice()).unwrap();
 
             prepare_static_images(prep_data.images_data);
         }
         TransportType::PrepareConditionalImage => {
-            let prep_data: PrepareConditionalImageData = serde::Deserialize::deserialize(
-                &mut rmp_serde::Deserializer::new(transport_data.as_slice()),
-            )
-            .unwrap();
+            let prep_data: PrepareConditionalImageData =
+                bincode::deserialize(transport_data.as_slice()).unwrap();
 
             prepare_conditional_images(prep_data.images_data);
         }
@@ -88,17 +88,20 @@ fn handle_input_message(
 
             let render_busy_indicator = render_busy_indicator.clone();
             let ui_display_image_handle = ui_display_image_handle.clone();
+            let sensor_value_history = sensor_value_history.clone();
 
             thread::spawn(move || {
                 // Begin rendering
                 *render_busy_indicator.lock().unwrap() = true;
 
-                let render_data: RenderData = serde::Deserialize::deserialize(
-                    &mut rmp_serde::Deserializer::new(transport_data.as_slice()),
-                )
-                .unwrap();
+                let render_data: RenderData =
+                    bincode::deserialize(transport_data.as_slice()).unwrap();
 
-                renderer::render_image(&ui_display_image_handle, render_data);
+                renderer::render_image(
+                    &ui_display_image_handle,
+                    &sensor_value_history,
+                    render_data,
+                );
 
                 // End rendering
                 *render_busy_indicator.lock().unwrap() = false;
