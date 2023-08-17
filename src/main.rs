@@ -1,7 +1,7 @@
-use std::{fs, thread};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::{fs, thread};
 
 use eframe::egui;
 use egui_extras::RetainedImage;
