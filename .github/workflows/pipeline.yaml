@@ -210,6 +210,7 @@ jobs:
         shell: bash
         run: |
           sed -i "s/version = \"0.0.0\"/version = \"${{ env.VERSION }}\"/g" Cargo.toml
+          echo "Cargo version is now" $(cargo metadata --no-deps --format-version 1 | jq -r ".packages[0].version")
 
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
@@ -265,6 +266,7 @@ jobs:
         shell: bash
         run: |
           sed -i "s/version = \"0.0.0\"/version = \"${{ env.VERSION }}\"/g" Cargo.toml
+          echo "Cargo version is now" $(cargo metadata --no-deps --format-version 1 | jq -r ".packages[0].version")
 
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
