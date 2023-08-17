@@ -12,7 +12,7 @@ message-io = { version = "0.17.0", default-features = false, features = ["tcp"] 
 image = "0.24.7"                                                                        # Image processing
 eframe = { version = "0.22.0", features = ["wayland"] }                                 # GUI
 egui_extras = { version = "0.22", features = ["image"] }                                # GUI extras
-log = "0.4.19"                                                                          # Logging
+log = "0.4.20"                                                                          # Logging
 env_logger = "0.10.0"                                                                   # Logging
 regex = "1.9.1"                                                                         # Regular expressions
 hostname = "0.3.1"                                                                      # Hostname
