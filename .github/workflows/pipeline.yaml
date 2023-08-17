@@ -86,7 +86,7 @@ jobs:
 
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-udeps
-        run: cargo binstall cargo-udeps
+        run: cargo binstall --no-confirm cargo-udeps
 
       - name: Analyze dependencies
         run: cargo update && cargo +nightly udeps
@@ -111,8 +111,9 @@ jobs:
       - name: Test code
         run: cargo test
 
-  build:
-    name: Build artifacts
+
+  compile:
+    name: Compile application
     strategy:
       fail-fast: false
       matrix:
@@ -132,8 +133,158 @@ jobs:
         with:
           cache-on-failure: true # upload cache even if there are errors in this step
 
-      - name: Test code
+      - name: Install cross
+        run: cargo install cross --git https://github.com/cross-rs/cross#main
+
+      - name: Build artifacts
+        run: cross build --target ${{ matrix.target }}
+
+  create-release:
+    name: Create new release
+    needs: [ check-code-style, check-code, check-unused-dependencies, compile ]
+    runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: Install Dependencies
+        run: |
+          npm install -g \
+             semantic-release  \
+            @semantic-release/git  \
+            @semantic-release/gitlab  \
+            @semantic-release/changelog  \
+            @semantic-release/exec \
+            @semantic-release/commit-analyzer \
+            conventional-changelog-conventionalcommits
+
+      - name: Generate Semantic Release Notes and Create Release
+        id: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: npx semantic-release
+
+      - name: Delete old releases
+        uses: dev-drprasad/delete-older-releases@v0.2.1
+        with:
+          keep_latest: 5
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  build-linux:
+    name: Build artifacts
+    needs: [ check-code-style, check-code, check-unused-dependencies, test ]
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ 'aarch64-unknown-linux-gnu', 'arm-unknown-linux-gnueabihf', 'armv5te-unknown-linux-gnueabi', 'armv7-unknown-linux-gnueabihf', 'x86_64-unknown-linux-gnu' ]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Detect and set latest github release VERSION
+        shell: bash
+        run: |
+          REPO="RouHim/sensor-display"
+          LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          LATEST_RELEASE=${LATEST_RELEASE#v}
+          echo "Latest release is $LATEST_RELEASE"
+          echo "VERSION=$LATEST_RELEASE" >> $GITHUB_ENV
+
+      - name: Set UPLOAD_URL variable
+        shell: bash
+        run: |
+          UPLOAD_URL=$(curl --silent https://api.github.com/repos/rouhim/sensor-display/releases/latest | jq -r '.upload_url')
+          echo "UPLOAD_URL=${UPLOAD_URL}" >> $GITHUB_ENV
+
+      - name: Set version to cargo
+        shell: bash
+        run: |
+          sed -i "s/version = \"0.0.0\"/version = \"${{ env.VERSION }}\"/g" Cargo.toml
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v2 # use /rust/cargo caching
+        with:
+          cache-on-failure: true # upload cache even if there are errors in this step
+
+      - name: Install cross
         run: cargo install cross --git https://github.com/cross-rs/cross#main
 
       - name: Build artifacts
         run: cross build --release --target ${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.UPLOAD_URL }}
+          asset_path: target/${{ matrix.target }}/release/sensor-display
+          # Updater expects: <asset name>-<semver>-<platform/target>.<extension>
+          asset_name: sensor-display-${{ env.VERSION }}-${{ matrix.target }}
+          asset_content_type: application/octet-stream
+
+  build-windows:
+    name: Build artifacts
+    needs: [ check-code-style, check-code, check-unused-dependencies, test ]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Detect and set latest github release VERSION
+        shell: bash
+        run: |
+          REPO="RouHim/sensor-display"
+          LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          LATEST_RELEASE=${LATEST_RELEASE#v}
+          echo "Latest release is $LATEST_RELEASE"
+          echo "VERSION=$LATEST_RELEASE" >> $GITHUB_ENV
+
+      - name: Set UPLOAD_URL variable
+        shell: bash
+        run: |
+          UPLOAD_URL=$(curl --silent https://api.github.com/repos/rouhim/sensor-display/releases/latest | jq -r '.upload_url')
+          echo "UPLOAD_URL=${UPLOAD_URL}" >> $GITHUB_ENV
+
+      - name: Set version to cargo
+        shell: bash
+        run: |
+          sed -i "s/version = \"0.0.0\"/version = \"${{ env.VERSION }}\"/g" Cargo.toml
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v2 # use /rust/cargo caching
+        with:
+          cache-on-failure: true # upload cache even if there are errors in this step
+
+      - name: Build artifacts
+        run: cargo build --release --platform x86_64-pc-windows-gnu
+
+      - name: Upload artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.UPLOAD_URL }}
+          asset_path: target/x86_64-pc-windows-gnu/release/sensor-display.exe
+          asset_name: sensor-display-${{ env.VERSION }}-x86_64-pc-windows-gnu.exe
+          asset_content_type: application/octet-stream
