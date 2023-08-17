@@ -141,7 +141,7 @@ jobs:
 
   create-release:
     name: Create new release
-    needs: [ check-code-style, check-code, check-unused-dependencies, compile ]
+    needs: [ check-repo, check-code-style, check-code, test, compile ]
     runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/main'
     steps:
@@ -181,7 +181,7 @@ jobs:
 
   build-linux:
     name: Build artifacts
-    needs: [ check-code-style, check-code, check-unused-dependencies, test ]
+    needs: [ create-release ]
     strategy:
       fail-fast: false
       matrix:
@@ -240,7 +240,7 @@ jobs:
 
   build-windows:
     name: Build artifacts
-    needs: [ check-code-style, check-code, check-unused-dependencies, test ]
+    needs: [ create-release ]
     runs-on: windows-latest
     steps:
       - name: Checkout code
