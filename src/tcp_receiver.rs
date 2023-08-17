@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -7,6 +8,7 @@ use log::{info, warn};
 use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
 use rayon::prelude::*;
+use regex::Regex;
 use sensor_core::{
     ElementType, PrepareConditionalImageData, PrepareStaticImageData, RenderData, SensorValue,
     TransportMessage, TransportType,
@@ -144,4 +146,46 @@ fn prepare_conditional_images(assets: HashMap<String, HashMap<String, Vec<u8>>>)
             std::fs::write(file_path, file_data).unwrap();
         })
     })
+}
+
+/// Parses the local IP address from the output of `ipconfig` on Windows.
+#[cfg(target_os = "windows")]
+pub fn get_local_ip_address() -> Vec<String> {
+    let output = Command::new("ipconfig")
+        .arg("/all")
+        .output()
+        .expect("Failed to execute command");
+    let ip_output = String::from_utf8_lossy(&output.stdout);
+
+    let pattern = Regex::new(r"IPv4 Address\s+:\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})").unwrap();
+
+    let mut ip_addresses: Vec<String> = Vec::new();
+
+    for capture in pattern.captures_iter(&ip_output) {
+        let ip_address = capture.get(1).unwrap().as_str().to_string();
+        ip_addresses.push(ip_address);
+    }
+
+    ip_addresses
+}
+
+/// Parses the local IP address from the output of `ip a` on Linux.
+#[cfg(target_os = "linux")]
+pub fn get_local_ip_address() -> Vec<String> {
+    let output = Command::new("ip")
+        .arg("a")
+        .output()
+        .expect("Failed to execute command");
+    let ip_output = String::from_utf8_lossy(&output.stdout);
+
+    let pattern = Regex::new(r"inet\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/\d{1,2}\s+brd").unwrap();
+
+    let mut ip_addresses: Vec<String> = Vec::new();
+
+    for capture in pattern.captures_iter(&ip_output) {
+        let ip_address = capture.get(1).unwrap().as_str().to_string();
+        ip_addresses.push(ip_address);
+    }
+
+    ip_addresses
 }

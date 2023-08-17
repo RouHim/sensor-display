@@ -1,0 +1,139 @@
+name: CI/CD
+on:
+  push:
+  pull_request:
+    types:
+      - opened
+  workflow_dispatch: # allow manual execution
+
+jobs:
+
+  check-repo:
+    name: Check git repository
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+
+  check-code-style:
+    name: Check code style
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2 # use /rust/cargo caching
+        with:
+          cache-on-failure: true # upload cache even if there are errors in this step
+
+      - name: Check the code style
+        run: cargo fmt --all -- --check
+
+  check-code:
+    name: Check rust code
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2 # use /rust/cargo caching
+        with:
+          cache-on-failure: true # upload cache even if there are errors in this step
+
+      - name: Verify code
+        run: cargo clippy
+
+  check-unused-dependencies:
+    name: Check for unused deps
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+
+      - uses: Swatinem/rust-cache@v2 # use /rust/cargo caching
+        with:
+          cache-on-failure: true # upload cache even if there are errors in this step
+
+      - uses: cargo-bins/cargo-binstall@main
+      - name: Install cargo-udeps
+        run: cargo binstall cargo-udeps
+
+      - name: Analyze dependencies
+        run: cargo update && cargo +nightly udeps
+
+  test:
+    name: Run application tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v2 # use /rust/cargo caching
+        with:
+          cache-on-failure: true # upload cache even if there are errors in this step
+
+      - name: Test code
+        run: cargo test
+
+  build:
+    name: Build artifacts
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ 'aarch64-unknown-linux-gnu', 'arm-unknown-linux-gnueabihf', 'armv5te-unknown-linux-gnueabi', 'armv7-unknown-linux-gnueabihf', 'x86_64-unknown-linux-gnu', 'x86_64-pc-windows-gnu' ]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v2 # use /rust/cargo caching
+        with:
+          cache-on-failure: true # upload cache even if there are errors in this step
+
+      - name: Test code
+        run: cargo install cross --git https://github.com/cross-rs/cross#main
+
+      - name: Build artifacts
+        run: cross build --release --target ${{ matrix.target }}
