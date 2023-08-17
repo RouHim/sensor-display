@@ -1,11 +1,12 @@
-use std::ops::Deref;
 use std::{fs, thread};
-
+use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use eframe::egui;
 use egui_extras::RetainedImage;
+use log::info;
+use self_update::cargo_crate_version;
 
 use crate::tcp_receiver::get_local_ip_address;
 
@@ -15,6 +16,9 @@ mod tcp_receiver;
 fn main() -> Result<(), eframe::Error> {
     // Initialize the logger
     env_logger::init();
+
+    // Check for updates
+    update();
 
     // Cleanup data directory
     fs::remove_dir_all(sensor_core::get_cache_base_dir()).unwrap_or_default(); // Ignore errors
@@ -41,7 +45,8 @@ fn main() -> Result<(), eframe::Error> {
     let local_ip = get_local_ip_address().join(", ");
     let hostname = hostname::get().unwrap();
     let standby_text = format!(
-        "No data received yet.\n\nIP Addresses:\t{}\nHostname:\t\t{}",
+        "No data received yet.\n\nVersion:\t\t\t{}\nIP Addresses:\t{}\nHostname:\t\t{}",
+        cargo_crate_version!(),
         local_ip,
         hostname.to_str().unwrap()
     );
@@ -63,4 +68,25 @@ fn main() -> Result<(), eframe::Error> {
                 }
             });
     })
+}
+
+/// Check for updates
+/// If an update is available, download and install it
+/// If no update is available, do nothing
+/// Automatically restart the application after update
+fn update() {
+    // In release mode, don't ask for confirmation
+    let no_confirm: bool = !cfg!(debug_assertions);
+
+    let status = self_update::backends::github::Update::configure()
+        .repo_owner("rouhim")
+        .repo_name("sensor-display")
+        .bin_name("sensor-display")
+        .show_download_progress(true)
+        .no_confirm(no_confirm)
+        .current_version(cargo_crate_version!())
+        .build()
+        .unwrap()
+        .update();
+    info!("Update status: `{:?}`!", status);
 }

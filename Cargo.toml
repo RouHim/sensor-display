@@ -16,6 +16,7 @@ log = "0.4.19"                                                                  
 env_logger = "0.10.0"                                                               # Logging
 regex = "1.9.1"                                                                     # Regular expressions
 hostname = "0.3.1"                                                                  # Hostname
+self_update = "0.37.0"                                                              # Self update
 
 [profile.release]
 panic = "abort" # Strip expensive panic clean-up logic
