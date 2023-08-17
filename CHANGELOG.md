@@ -1,3 +1,16 @@
+# [1.1.0](https://github.com/RouHim/sensor-display/compare/v1.0.0...v1.1.0) (2023-08-17)
+
+
+### Bug Fixes
+
+* **renovate:** remove ubuntu exception ([782268e](https://github.com/RouHim/sensor-display/commit/782268ede2f7fc43a4e215cd084b30968fe27cf9))
+* **selfupdate:** use rustls ([84705fc](https://github.com/RouHim/sensor-display/commit/84705fc52c5822233b7d02e1e22f887c15094293))
+
+
+### Features
+
+* **pipeline:** add auto updater ([64a4b22](https://github.com/RouHim/sensor-display/commit/64a4b22c8f67483650958a3d36e2af0d5ec3740e))
+
 # 1.0.0 (2023-08-17)
 
 
