@@ -86,7 +86,7 @@ jobs:
 
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-udeps
-        run: cargo binstall --no-confirm cargo-udeps
+        run: cargo binstall --no-confirm --force cargo-udeps
 
       - name: Analyze dependencies
         run: cargo update && cargo +nightly udeps
@@ -134,7 +134,7 @@ jobs:
           cache-on-failure: true # upload cache even if there are errors in this step
 
       - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross#main
+        run: cargo install cross --force --git https://github.com/cross-rs/cross#main
 
       - name: Build artifacts
         run: cross build --target ${{ matrix.target }}

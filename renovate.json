@@ -9,7 +9,14 @@
         "digest"
       ],
       "automerge": true,
-      "automergeType": "branch"
+      "automergeType": "branch",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "ubuntu"
+      ],
+      "allowedVersions": "20.04"
     }
   ]
 }
