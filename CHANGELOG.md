@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/RouHim/sensor-display/compare/v1.1.3...v1.2.0) (2023-08-18)
+
+
+### Features
+
+* **cargo:** use tag of sensor core library ([10eef93](https://github.com/RouHim/sensor-display/commit/10eef93164370b3a78fbadc725a0a559d7b1a6e5))
+
 ## [1.1.3](https://github.com/RouHim/sensor-display/compare/v1.1.2...v1.1.3) (2023-08-18)
 
 ## [1.1.2](https://github.com/RouHim/sensor-display/compare/v1.1.1...v1.1.2) (2023-08-18)
