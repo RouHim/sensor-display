@@ -65,7 +65,11 @@ fn main() -> Result<(), eframe::Error> {
 fn get_standby_text(ctx: &Context) -> String {
     let local_ip = get_local_ip_address().join(", ");
     let hostname = hostname::get().unwrap();
-    let display_resolution = format!("{}x{}", ctx.screen_rect().width(), ctx.screen_rect().height());
+    let display_resolution = format!(
+        "{}x{}",
+        ctx.screen_rect().width(),
+        ctx.screen_rect().height()
+    );
 
     format!(
         "No data received yet.\n\nVersion:\t\t\t\t\t\t{}\nIP Addresse:\t\t\t\t{}\nHostname:\t\t\t\t\t{}\nDisplay resolution:\t{}",
