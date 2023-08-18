@@ -4,6 +4,7 @@ use std::time::Duration;
 use std::{fs, thread};
 
 use eframe::egui;
+use eframe::egui::Context;
 use egui_extras::RetainedImage;
 use log::info;
 use self_update::cargo_crate_version;
@@ -42,15 +43,6 @@ fn main() -> Result<(), eframe::Error> {
         tcp_receiver::receive(write_image_data_mutex, listener);
     });
 
-    let local_ip = get_local_ip_address().join(", ");
-    let hostname = hostname::get().unwrap();
-    let standby_text = format!(
-        "No data received yet.\n\nVersion:\t\t\t{}\nIP Addresses:\t{}\nHostname:\t\t{}",
-        cargo_crate_version!(),
-        local_ip,
-        hostname.to_str().unwrap()
-    );
-
     eframe::run_simple_native("Sensor Display", options, move |ctx, _frame| {
         ctx.request_repaint_after(Duration::from_millis(100));
         ctx.set_cursor_icon(egui::CursorIcon::None);
@@ -64,10 +56,24 @@ fn main() -> Result<(), eframe::Error> {
                 if let Some(image) = image {
                     image.show_max_size(ui, ui.available_size());
                 } else {
-                    ui.label(&standby_text);
+                    ui.label(&get_standby_text(ctx));
                 }
             });
     })
+}
+
+fn get_standby_text(ctx: &Context) -> String {
+    let local_ip = get_local_ip_address().join(", ");
+    let hostname = hostname::get().unwrap();
+    let display_resolution = format!("{}x{}", ctx.screen_rect().width(), ctx.screen_rect().height());
+
+    format!(
+        "No data received yet.\n\nVersion:\t\t\t\t\t\t{}\nIP Addresse:\t\t\t\t{}\nHostname:\t\t\t\t\t{}\nDisplay resolution:\t{}",
+        cargo_crate_version!(),
+        local_ip,
+        hostname.to_str().unwrap(),
+        display_resolution
+    )
 }
 
 /// Check for updates
