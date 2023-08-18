@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/RouHim/sensor-display/compare/v1.3.1...v1.4.0) (2023-08-18)
+
+
+### Features
+
+* **renderer:** sleep time before rendering next frame ([95d0f20](https://github.com/RouHim/sensor-display/commit/95d0f20c621a908b1ffdabd6c28d11190aa27813))
+
 ## [1.3.1](https://github.com/RouHim/sensor-display/compare/v1.3.0...v1.3.1) (2023-08-18)
 
 # [1.3.0](https://github.com/RouHim/sensor-display/compare/v1.2.0...v1.3.0) (2023-08-18)
