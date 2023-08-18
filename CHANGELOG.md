@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/RouHim/sensor-display/compare/v1.2.0...v1.3.0) (2023-08-18)
+
+
+### Bug Fixes
+
+* **network:** no ip address on windows ([f4ced8c](https://github.com/RouHim/sensor-display/commit/f4ced8cf5d3ab37826687e6493f73c8b838b0578))
+
+
+### Features
+
+* **display:** show display resolution ([f6a0596](https://github.com/RouHim/sensor-display/commit/f6a05960f286cd8ab25723cdc2b08647ac98c94c))
+
 # [1.2.0](https://github.com/RouHim/sensor-display/compare/v1.1.3...v1.2.0) (2023-08-18)
 
 
