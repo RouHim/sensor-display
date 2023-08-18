@@ -24,7 +24,6 @@ jobs:
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
 
-
   check-code-style:
     name: Check code style
     runs-on: ubuntu-22.04
@@ -111,7 +110,6 @@ jobs:
       - name: Test code
         run: cargo test
 
-
   compile:
     name: Compile application
     strategy:
@@ -177,7 +175,6 @@ jobs:
           delete_tags: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 
   build-linux:
     name: Build linux artifacts
