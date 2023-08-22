@@ -104,9 +104,6 @@ fn handle_input_message(
                     render_data,
                 );
 
-                // Sleep some time to cool down before rendering the next frame
-                thread::sleep(std::time::Duration::from_millis(100));
-
                 // End rendering
                 *render_busy_indicator.lock().unwrap() = false;
             });
