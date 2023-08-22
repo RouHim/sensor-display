@@ -1,3 +1,10 @@
+## [1.4.4](https://github.com/RouHim/sensor-display/compare/v1.4.3...v1.4.4) (2023-08-22)
+
+
+### Bug Fixes
+
+* **renderer:** remove render cooldown ([c42d2a8](https://github.com/RouHim/sensor-display/commit/c42d2a80ba91d6c6981e531a682e37234f67ebdd))
+
 ## [1.4.3](https://github.com/RouHim/sensor-display/compare/v1.4.2...v1.4.3) (2023-08-22)
 
 ## [1.4.2](https://github.com/RouHim/sensor-display/compare/v1.4.1...v1.4.2) (2023-08-22)
