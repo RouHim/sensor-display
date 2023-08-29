@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-sensor-core = { git = "https://github.com/RouHim/sensor-core", tag = "v1.1.2" }         # Sensor core library
+sensor-core = { git = "https://github.com/RouHim/sensor-core", tag = "v1.2.0" }         # Sensor core library
 serde = { version = "1.0.188", features = ["derive"] }                                  # De/Serialization
 bincode = "1.3.3"                                                                       # Bincode De/Serialization
 rayon = "1.7.0"                                                                         # Parallelization
