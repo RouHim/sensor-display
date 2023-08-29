@@ -1,3 +1,16 @@
+# [1.5.0](https://github.com/RouHim/sensor-display/compare/v1.4.8...v1.5.0) (2023-08-29)
+
+
+### Bug Fixes
+
+* **pipeline:** use angular commit schema ([c0ac6f4](https://github.com/RouHim/sensor-display/commit/c0ac6f4a57ef37f498ba3ccfdecd5b325c9b75ac))
+
+
+### Features
+
+* **sensorvalues:** allow empty values for not selected element types ([7f2f9d9](https://github.com/RouHim/sensor-display/commit/7f2f9d92091b42d99c6ed765c2051af703d6d669))
+* **sensorvalues:** allow empty values for not selected element types ([1baebef](https://github.com/RouHim/sensor-display/commit/1baebef582bab2d7af1bf26479869cb267a564e5))
+
 ## [1.4.8](https://github.com/RouHim/sensor-display/compare/v1.4.7...v1.4.8) (2023-08-26)
 
 ## [1.4.7](https://github.com/RouHim/sensor-display/compare/v1.4.6...v1.4.7) (2023-08-25)
