@@ -9,8 +9,8 @@ use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
 use rayon::prelude::*;
 use sensor_core::{
-    ElementType, PrepareConditionalImageData, PrepareStaticImageData, RenderData, SensorValue,
-    TransportMessage, TransportType,
+    ElementType, PrepareConditionalImageData, PrepareStaticImageData, PrepareTextData, RenderData,
+    SensorValue, TransportMessage, TransportType,
 };
 
 use crate::renderer;
@@ -66,16 +66,19 @@ fn handle_input_message(
     let transport_data = transport_message.data;
 
     match transport_type {
+        TransportType::PrepareText => {
+            let prep_data: PrepareTextData =
+                bincode::deserialize(transport_data.as_slice()).unwrap();
+            prepare_static_data(prep_data.font_data, ElementType::Text);
+        }
         TransportType::PrepareStaticImage => {
             let prep_data: PrepareStaticImageData =
                 bincode::deserialize(transport_data.as_slice()).unwrap();
-
-            prepare_static_images(prep_data.images_data);
+            prepare_static_data(prep_data.images_data, ElementType::StaticImage);
         }
         TransportType::PrepareConditionalImage => {
             let prep_data: PrepareConditionalImageData =
                 bincode::deserialize(transport_data.as_slice()).unwrap();
-
             prepare_conditional_images(prep_data.images_data);
         }
         TransportType::RenderImage => {
@@ -111,29 +114,33 @@ fn handle_input_message(
     }
 }
 
-/// Prepare static images for rendering.
+/// Prepare static data for rendering on the local filesystem.
 /// This is done by storing each asset with its element id in the data folder on the filesystem
-fn prepare_static_images(assets: HashMap<String, Vec<u8>>) {
+/// /// # Parameters
+// /// * `assets` - A hashmap containing the data for each element
+fn prepare_static_data(assets: HashMap<String, Vec<u8>>, element_type: ElementType) {
     // Ensure data folder exists and is empty
     assets.par_iter().for_each(|(element_id, asset_data)| {
-        let element_cache_dir = sensor_core::get_cache_dir(element_id, ElementType::StaticImage);
-        let image_file_path = element_cache_dir.join(element_id);
+        let element_cache_dir = sensor_core::get_cache_dir(element_id, &element_type);
+        let file_path = element_cache_dir.join(element_id);
 
         // Ensure cache dir exists and is empty
         std::fs::remove_dir_all(&element_cache_dir).unwrap_or_default();
         std::fs::create_dir_all(&element_cache_dir).unwrap();
 
-        std::fs::write(image_file_path, asset_data).unwrap();
+        std::fs::write(file_path, asset_data).unwrap();
     });
 }
 
 /// Prepare conditional images for rendering.
 /// This is done by storing each asset with its element id in the data folder on the filesystem
+/// # Parameters
+/// * `assets` - A hashmap containing the image data for each conditional image element
 fn prepare_conditional_images(assets: HashMap<String, HashMap<String, Vec<u8>>>) {
     assets.par_iter().for_each(|element| {
         let element_id = element.0;
         let element_cache_dir =
-            sensor_core::get_cache_dir(element_id, ElementType::ConditionalImage);
+            sensor_core::get_cache_dir(element_id, &ElementType::ConditionalImage);
 
         // Ensure cache dir exists and is empty
         std::fs::remove_dir_all(&element_cache_dir).unwrap_or_default();
@@ -147,7 +154,6 @@ fn prepare_conditional_images(assets: HashMap<String, HashMap<String, Vec<u8>>>)
     })
 }
 
-/// Parses the local IP address from the output of `ipconfig` on Windows.
 pub fn get_local_ip_address() -> Vec<String> {
     if let Ok(my_local_ip) = local_ip() {
         vec![my_local_ip.to_string()]

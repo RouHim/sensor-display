@@ -4,7 +4,7 @@ use std::time::Duration;
 use std::{fs, thread};
 
 use eframe::egui;
-use eframe::egui::Context;
+
 use egui_extras::RetainedImage;
 use log::info;
 use self_update::cargo_crate_version;
@@ -15,6 +15,9 @@ mod renderer;
 mod tcp_receiver;
 
 fn main() -> Result<(), eframe::Error> {
+    // Set the app name for the dynamic cache folder detection
+    std::env::set_var("SENSOR_BRIDGE_APP_NAME", "sensor-display");
+
     // Initialize the logger
     env_logger::init();
 
@@ -43,7 +46,15 @@ fn main() -> Result<(), eframe::Error> {
         tcp_receiver::receive(write_image_data_mutex, listener);
     });
 
+    let ip = get_local_ip_address().join(", ").clone();
+    let hostname = hostname::get().unwrap().into_string().unwrap();
+
     eframe::run_simple_native("Sensor Display", options, move |ctx, _frame| {
+        let resolution = format!(
+            "{}x{}",
+            ctx.screen_rect().width(),
+            ctx.screen_rect().height()
+        );
         ctx.request_repaint_after(Duration::from_millis(100));
         ctx.set_cursor_icon(egui::CursorIcon::None);
         egui::Area::new("main_area")
@@ -56,26 +67,18 @@ fn main() -> Result<(), eframe::Error> {
                 if let Some(image) = image {
                     image.show_max_size(ui, ui.available_size());
                 } else {
-                    ui.label(&get_standby_text(ctx));
+                    ui.label(&build_standby_text(&ip, &hostname, &resolution));
                 }
             });
     })
 }
 
-fn get_standby_text(ctx: &Context) -> String {
-    let local_ip = get_local_ip_address().join(", ");
-    let hostname = hostname::get().unwrap();
-    let display_resolution = format!(
-        "{}x{}",
-        ctx.screen_rect().width(),
-        ctx.screen_rect().height()
-    );
-
+fn build_standby_text(local_ip: &str, hostname: &str, display_resolution: &str) -> String {
     format!(
         "No data received yet.\n\nVersion:\t\t\t\t\t\t{}\nIP Addresse:\t\t\t\t{}\nHostname:\t\t\t\t\t{}\nDisplay resolution:\t{}",
         cargo_crate_version!(),
         local_ip,
-        hostname.to_str().unwrap(),
+        hostname,
         display_resolution
     )
 }

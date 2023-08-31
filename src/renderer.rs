@@ -30,7 +30,8 @@ pub fn render_image(
         history_read_time.duration_since(start)
     );
 
-    let image_data = sensor_core::render_lcd_image(render_data.lcd_config, &sensor_value_history);
+    let image_data =
+        sensor_core::render_lcd_image(render_data.display_config, &sensor_value_history);
 
     let lcd_render_time = std::time::Instant::now();
     info!(
