@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/RouHim/sensor-display/compare/v1.5.1...v1.6.0) (2023-08-31)
+
+
+### Features
+
+* very big refactoring and font selection ([5e2874e](https://github.com/RouHim/sensor-display/commit/5e2874eca8025131fb8234387f5c9a64e5066b41))
+
 ## [1.5.1](https://github.com/RouHim/sensor-display/compare/v1.5.0...v1.5.1) (2023-08-29)
 
 # [1.5.0](https://github.com/RouHim/sensor-display/compare/v1.4.8...v1.5.0) (2023-08-29)
