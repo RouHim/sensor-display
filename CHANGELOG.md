@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/RouHim/sensor-display/compare/v1.6.0...v1.7.0) (2023-09-04)
+
+
+### Features
+
+* **rendering:** bump sensor-core to 1.6.0 ([d23abad](https://github.com/RouHim/sensor-display/commit/d23abad7a144ac14706616dfb89018deb7c67530))
+
 # [1.6.0](https://github.com/RouHim/sensor-display/compare/v1.5.1...v1.6.0) (2023-08-31)
 
 
