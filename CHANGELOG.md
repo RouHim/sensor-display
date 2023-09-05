@@ -1,3 +1,15 @@
+# [1.9.0](https://github.com/RouHim/sensor-display/compare/1.8.1...1.9.0) (2023-09-05)
+
+
+### Bug Fixes
+
+* **updater:** broken linux updater ([bd4ade4](https://github.com/RouHim/sensor-display/commit/bd4ade43b13e3afcca4babd260a534ebd07db7ab))
+
+
+### Features
+
+* **updater:** restart after auto-update ([1874d34](https://github.com/RouHim/sensor-display/commit/1874d348bea785e79e0e9a61eefcd5529dadc993))
+
 ## [1.8.1](https://github.com/RouHim/sensor-display/compare/1.8.0...1.8.1) (2023-09-05)
 
 
