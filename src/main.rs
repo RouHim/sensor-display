@@ -1,4 +1,6 @@
 use std::ops::Deref;
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -112,7 +114,7 @@ fn update() {
 
         #[cfg(unix)]
         {
-            let err = command.exec();
+            let _err = command.exec();
         }
 
         #[cfg(windows)]
