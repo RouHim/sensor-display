@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/RouHim/sensor-display/compare/1.8.0...1.8.1) (2023-09-05)
+
+
+### Bug Fixes
+
+* **fonts:** improve font loading ([88d4ef6](https://github.com/RouHim/sensor-display/commit/88d4ef6ccf7c15b2d345968210fbbecb590886a6))
+
 # [1.8.0](https://github.com/RouHim/sensor-display/compare/v1.7.1...1.8.0) (2023-09-05)
 
 
