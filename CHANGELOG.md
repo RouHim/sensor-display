@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/RouHim/sensor-display/compare/v1.7.1...1.8.0) (2023-09-05)
+
+
+### Features
+
+* **release:** remove v in front of git tag ([4e0e54b](https://github.com/RouHim/sensor-display/commit/4e0e54b54a517d1be9d8962351a11ab6f222f676))
+
 ## [1.7.1](https://github.com/RouHim/sensor-display/compare/v1.7.0...v1.7.1) (2023-09-05)
 
 # [1.7.0](https://github.com/RouHim/sensor-display/compare/v1.6.0...v1.7.0) (2023-09-04)
