@@ -1,7 +1,8 @@
 use std::ops::Deref;
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::{fs, thread};
+use std::{env, fs, thread};
 
 use eframe::egui;
 use egui_extras::RetainedImage;
@@ -99,6 +100,24 @@ fn update() {
         .current_version(cargo_crate_version!())
         .build()
         .unwrap()
-        .update();
-    info!("Update status: `{:?}`!", status);
+        .update_extended()
+        .unwrap();
+
+    if status.updated() {
+        info!("Respawning after update...");
+
+        let current_exe = env::current_exe();
+        let mut command = Command::new(current_exe.unwrap());
+        command.args(env::args().skip(1));
+
+        #[cfg(unix)]
+        {
+            let err = command.exec();
+        }
+
+        #[cfg(windows)]
+        {
+            let _status = command.spawn().and_then(|mut c| c.wait()).unwrap();
+        }
+    }
 }
