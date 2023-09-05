@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
 use eframe::egui::ColorImage;
@@ -11,6 +13,7 @@ pub fn render_image(
     ui_display_image_handle: &Arc<Mutex<Option<RetainedImage>>>,
     sensor_value_history: &Arc<Mutex<Vec<Vec<SensorValue>>>>,
     render_data: RenderData,
+    fonts_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
 ) {
     let start = std::time::Instant::now();
 
@@ -30,8 +33,11 @@ pub fn render_image(
         history_read_time.duration_since(start)
     );
 
-    let image_data =
-        sensor_core::render_lcd_image(render_data.display_config, &sensor_value_history);
+    let image_data = sensor_core::render_lcd_image(
+        render_data.display_config,
+        &sensor_value_history,
+        fonts_data.lock().unwrap().deref(),
+    );
 
     let lcd_render_time = std::time::Instant::now();
     info!(

@@ -4,7 +4,6 @@ use std::time::Duration;
 use std::{fs, thread};
 
 use eframe::egui;
-
 use egui_extras::RetainedImage;
 use log::info;
 use self_update::cargo_crate_version;
@@ -33,6 +32,8 @@ fn main() -> Result<(), eframe::Error> {
         active: true,
         decorated: false,
         fullscreen: true,
+        drag_and_drop_support: false,
+
         ..Default::default()
     };
 
@@ -55,16 +56,14 @@ fn main() -> Result<(), eframe::Error> {
             ctx.screen_rect().width(),
             ctx.screen_rect().height()
         );
-        ctx.request_repaint_after(Duration::from_millis(100));
+        ctx.request_repaint_after(Duration::from_millis(25));
         ctx.set_cursor_icon(egui::CursorIcon::None);
         egui::Area::new("main_area")
             .fixed_pos(egui::pos2(0.0, 0.0))
             .show(ctx, |ui| {
                 // Get image data from mutex
                 let mutex = image_data_mutex.lock().unwrap();
-                let image = mutex.deref();
-
-                if let Some(image) = image {
+                if let Some(image) = mutex.deref() {
                     image.show_max_size(ui, ui.available_size());
                 } else {
                     ui.label(&build_standby_text(&ip, &hostname, &resolution));

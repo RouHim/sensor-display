@@ -34,13 +34,14 @@ pub fn listen() -> (NodeHandler<()>, NodeListener<()>) {
 
 pub fn receive(
     ui_display_image_handle: Arc<Mutex<Option<RetainedImage>>>,
-    listener: NodeListener<()>,
+    tcp_listener: NodeListener<()>,
 ) {
     let render_busy_indicator = Arc::new(Mutex::new(false));
     let sensor_value_history: Arc<Mutex<Vec<Vec<SensorValue>>>> = Arc::new(Mutex::new(Vec::new()));
+    let fonts_data: Arc<Mutex<HashMap<String, Vec<u8>>>> = Arc::new(Mutex::new(HashMap::new()));
 
     // Iterate indefinitely over all generated NetEvent until NodeHandler::stop() is called.
-    listener.for_each(move |event| {
+    tcp_listener.for_each(move |event| {
         match event.network() {
             NetEvent::Connected(_, _) => unreachable!(), // Used for explicit connections.
             NetEvent::Accepted(_endpoint, _listener) => info!("Client connected"),
@@ -48,6 +49,7 @@ pub fn receive(
                 &ui_display_image_handle,
                 &render_busy_indicator,
                 &sensor_value_history,
+                &fonts_data,
                 data,
             ),
             NetEvent::Disconnected(_endpoint) => info!("Client disconnected"),
@@ -59,17 +61,22 @@ fn handle_input_message(
     ui_display_image_handle: &Arc<Mutex<Option<RetainedImage>>>,
     render_busy_indicator: &Arc<Mutex<bool>>,
     sensor_value_history: &Arc<Mutex<Vec<Vec<SensorValue>>>>,
+    fonts_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
     data: &[u8],
 ) {
     let transport_message: TransportMessage = bincode::deserialize(data).unwrap();
     let transport_type = transport_message.transport_type;
     let transport_data = transport_message.data;
+    let fonts_data = fonts_data.clone();
 
     match transport_type {
         TransportType::PrepareText => {
             let prep_data: PrepareTextData =
                 bincode::deserialize(transport_data.as_slice()).unwrap();
-            prepare_static_data(prep_data.font_data, ElementType::Text);
+
+            let mut font_data_lock = fonts_data.lock().unwrap();
+            font_data_lock.clear();
+            font_data_lock.extend(prep_data.font_data);
         }
         TransportType::PrepareStaticImage => {
             let prep_data: PrepareStaticImageData =
@@ -105,6 +112,7 @@ fn handle_input_message(
                     &ui_display_image_handle,
                     &sensor_value_history,
                     render_data,
+                    &fonts_data,
                 );
 
                 // End rendering
