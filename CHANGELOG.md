@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/RouHim/sensor-display/compare/1.9.1...1.9.2) (2023-09-06)
+
+
+### Bug Fixes
+
+* **updater:** broken linux updater in debug mode ([591a625](https://github.com/RouHim/sensor-display/commit/591a6252d46963f2d3e295aa18b3e9fa5c6885dc))
+
 ## [1.9.1](https://github.com/RouHim/sensor-display/compare/1.9.0...1.9.1) (2023-09-05)
 
 # [1.9.0](https://github.com/RouHim/sensor-display/compare/1.8.1...1.9.0) (2023-09-05)
