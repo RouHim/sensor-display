@@ -102,10 +102,9 @@ fn update() {
         .current_version(cargo_crate_version!())
         .build()
         .unwrap()
-        .update_extended()
-        .unwrap();
+        .update_extended();
 
-    if status.updated() {
+    if status.is_ok() && status.unwrap().updated() {
         info!("Respawning after update...");
 
         let current_exe = env::current_exe();
