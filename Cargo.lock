@@ -2843,7 +2843,7 @@ checksum = "b0293b4b29daaf487284529cc2f5675b8e57c61f70167ba415a463651fd6a918"
 [[package]]
 name = "sensor-core"
 version = "0.0.0"
-source = "git+https://github.com/RouHim/sensor-core?tag=1.8.2#4f214234c9a0692b5f0a4b1a18f8ccf7dd869d51"
+source = "git+https://github.com/RouHim/sensor-core?tag=1.8.3#fc0ff6a0880e9e675d59545634c8fe2ccadc95c4"
 dependencies = [
  "dirs",
  "image",
