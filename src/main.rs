@@ -7,7 +7,7 @@ use std::time::Duration;
 use std::{env, fs, thread};
 
 use eframe::egui;
-use egui_extras::RetainedImage;
+
 use log::info;
 use self_update::cargo_crate_version;
 
@@ -41,7 +41,7 @@ fn main() -> Result<(), eframe::Error> {
     };
 
     // Create arc mutex for image data
-    let image_data_mutex: Arc<Mutex<Option<RetainedImage>>> = Arc::new(Mutex::new(None));
+    let image_data_mutex: Arc<Mutex<Option<Vec<u8>>>> = Arc::new(Mutex::new(None));
 
     // Create new thread to listen for tcp messages
     let write_image_data_mutex = image_data_mutex.clone();
@@ -66,8 +66,16 @@ fn main() -> Result<(), eframe::Error> {
             .show(ctx, |ui| {
                 // Get image data from mutex
                 let mutex = image_data_mutex.lock().unwrap();
-                if let Some(image) = mutex.deref() {
-                    image.show_max_size(ui, ui.available_size());
+                if let Some(image_data) = mutex.deref() {
+                    let image = eframe::egui::Image::from_bytes(
+                        "bytes://rendered_image.png",
+                        eframe::egui::load::Bytes::from(image_data.clone()),
+                    );
+                    image
+                        .paint_at(ui, eframe::emath::Rect::from_min_size(
+                            egui::pos2(0.0, 0.0),
+                            ctx.screen_rect().size(),
+                        ));
                 } else {
                     ui.label(&build_standby_text(&ip, &hostname, &resolution));
                 }

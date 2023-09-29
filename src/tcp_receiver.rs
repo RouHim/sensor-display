@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use egui_extras::RetainedImage;
 use local_ip_address::local_ip;
 use log::{info, warn};
 use message_io::network::{NetEvent, Transport};
@@ -33,7 +32,7 @@ pub fn listen() -> (NodeHandler<()>, NodeListener<()>) {
 }
 
 pub fn receive(
-    ui_display_image_handle: Arc<Mutex<Option<RetainedImage>>>,
+    ui_display_image_handle: Arc<Mutex<Option<Vec<u8>>>>,
     tcp_listener: NodeListener<()>,
 ) {
     let render_busy_indicator = Arc::new(Mutex::new(false));
@@ -58,7 +57,7 @@ pub fn receive(
 }
 
 fn handle_input_message(
-    ui_display_image_handle: &Arc<Mutex<Option<RetainedImage>>>,
+    ui_display_image_handle: &Arc<Mutex<Option<Vec<u8>>>>,
     render_busy_indicator: &Arc<Mutex<bool>>,
     sensor_value_history: &Arc<Mutex<Vec<Vec<SensorValue>>>>,
     fonts_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
