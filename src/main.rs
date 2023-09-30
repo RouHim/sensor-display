@@ -7,6 +7,7 @@ use std::time::Duration;
 use std::{env, fs, thread};
 
 use eframe::egui;
+use eframe::egui::{ImageSource, Vec2};
 
 use log::info;
 use self_update::cargo_crate_version;
@@ -59,6 +60,7 @@ fn main() -> Result<(), eframe::Error> {
             ctx.screen_rect().width(),
             ctx.screen_rect().height()
         );
+        egui_extras::install_image_loaders(ctx);
         ctx.request_repaint_after(Duration::from_millis(25));
         ctx.set_cursor_icon(egui::CursorIcon::None);
         egui::Area::new("main_area")
@@ -67,18 +69,18 @@ fn main() -> Result<(), eframe::Error> {
                 // Get image data from mutex
                 let mutex = image_data_mutex.lock().unwrap();
                 if let Some(image_data) = mutex.deref() {
-                    let image = eframe::egui::Image::from_bytes(
-                        "bytes://rendered_image.png",
-                        eframe::egui::load::Bytes::from(image_data.clone()),
-                    );
-                    image
-                        .paint_at(ui, eframe::emath::Rect::from_min_size(
-                            egui::pos2(0.0, 0.0),
-                            ctx.screen_rect().size(),
-                        ));
+                    // Set filename to a changing value to prevent caching
+                    let name = ctx.frame_nr();
+                    let image_source =
+                        ImageSource::from((format!("bytes://{name}.jpg"), image_data.clone()));
+                    let image = egui::Image::new(image_source).fit_to_exact_size(Vec2::new(
+                        ctx.screen_rect().width(),
+                        ctx.screen_rect().height(),
+                    ));
+                    ui.add(image);
                 } else {
                     ui.label(&build_standby_text(&ip, &hostname, &resolution));
-                }
+                };
             });
     })
 }

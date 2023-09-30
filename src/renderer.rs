@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{BufWriter, Cursor};
+use std::io::Cursor;
 
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
@@ -33,7 +33,7 @@ pub fn render_image(
         history_read_time.duration_since(start)
     );
 
-    let image_data = sensor_core::render_lcd_image(
+    let image_buffer = sensor_core::render_lcd_image(
         render_data.display_config,
         &sensor_value_history,
         fonts_data.lock().unwrap().deref(),
@@ -45,9 +45,16 @@ pub fn render_image(
         lcd_render_time.duration_since(history_read_time)
     );
 
+    // Render to jpg
+    let mut image_data = Vec::new();
+    let mut cursor = Cursor::new(&mut image_data);
+    image_buffer
+        .write_to(&mut cursor, image::ImageOutputFormat::Jpeg(100))
+        .unwrap();
+
     // Write image data to ui mutex
     let mut mutex = ui_display_image_handle.lock().unwrap();
-    *mutex = Some(image_data.to_vec());
+    *mutex = Some(image_data);
 
     info!("Total time: {:?}", lcd_render_time.duration_since(start));
     info!("---");
