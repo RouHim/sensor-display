@@ -16,7 +16,7 @@ log = "0.4.20"                                                                  
 env_logger = "0.10.0"                                                                   # Logging
 local-ip-address = "0.5.6"                                                              # Local IP address
 hostname = "0.3.1"                                                                      # Hostname
-self_update = { version = "0.38.0", features = ["rustls"], default-features = false }   # Self update
+self_update = { version = "0.39.0", features = ["rustls"], default-features = false }   # Self update
 
 [profile.release]
 panic = "abort" # Strip expensive panic clean-up logic
