@@ -1,14 +1,13 @@
+use std::{env, fs, thread};
 use std::ops::Deref;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::{env, fs, thread};
 
 use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
-
 use log::info;
 use self_update::cargo_crate_version;
 
@@ -54,33 +53,64 @@ fn main() -> Result<(), eframe::Error> {
     let ip = get_local_ip_address().join(", ").clone();
     let hostname = hostname::get().unwrap().into_string().unwrap();
 
+    let show_start_screen = Arc::new(Mutex::new(true));
+    let current_frame_number: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(None));
+
     eframe::run_simple_native("Sensor Display", options, move |ctx, _frame| {
         let resolution = format!(
             "{}x{}",
             ctx.screen_rect().width(),
             ctx.screen_rect().height()
         );
+
         egui_extras::install_image_loaders(ctx);
-        ctx.request_repaint_after(Duration::from_millis(25));
+        ctx.request_repaint_after(Duration::from_millis(250));
         ctx.set_cursor_icon(egui::CursorIcon::None);
+
         egui::Area::new("main_area")
             .fixed_pos(egui::pos2(0.0, 0.0))
             .show(ctx, |ui| {
-                // Get image data from mutex
-                let mutex = image_data_mutex.lock().unwrap();
-                if let Some(image_data) = mutex.deref() {
-                    // Set filename to a changing value to prevent caching
-                    let name = ctx.frame_nr();
+                let mut image_mutex = image_data_mutex.lock().unwrap();
+                if let Some(image_data) = image_mutex.deref() {
+                    // get current frame number
+                    let mut current_number = current_frame_number.lock().unwrap();
+                    let old_showing_frame = current_number.unwrap_or_default();
+
+                    let frame_number = ctx.frame_nr();
                     let image_source =
-                        ImageSource::from((format!("bytes://{name}.jpg"), image_data.clone()));
+                        ImageSource::from((format!("bytes://{frame_number}.jpg"), image_data.clone()));
                     let image = egui::Image::new(image_source).fit_to_exact_size(Vec2::new(
                         ctx.screen_rect().width(),
                         ctx.screen_rect().height(),
                     ));
                     ui.add(image);
-                } else {
+
+                    // set image_mutex to none
+                    *image_mutex = None;
+
+                    // Set current frame number
+                    *current_number = Some(frame_number);
+
+                    // Remove the image cache for old curren showing frame number
+                    ctx.forget_image(format!("bytes://{old_showing_frame}.jpg").as_str());
+
+                    // set show_start_screen to false
+                    let mut mutex = show_start_screen.lock().unwrap();
+                    *mutex = false;
+
+                } else if *show_start_screen.lock().unwrap() {
                     ui.label(&build_standby_text(&ip, &hostname, &resolution));
-                };
+                }
+                // Just show the cached image
+                else {
+                    let frame_number = current_frame_number.lock().unwrap().unwrap();
+                    let image_source = ImageSource::from((format!("bytes://{frame_number}.jpg"), Vec::new()));
+                    let image = egui::Image::new(image_source).fit_to_exact_size(Vec2::new(
+                        ctx.screen_rect().width(),
+                        ctx.screen_rect().height(),
+                    ));
+                    ui.add(image);
+                }
             });
     })
 }
