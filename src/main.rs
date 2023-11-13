@@ -1,10 +1,10 @@
-use std::{env, fs, thread};
 use std::ops::Deref;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::{env, fs, thread};
 
 use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
