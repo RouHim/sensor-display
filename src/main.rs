@@ -1,20 +1,18 @@
 use std::ops::Deref;
-#[cfg(unix)]
-use std::os::unix::process::CommandExt;
-use std::process::Command;
+use std::{env, fs, thread};
+
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::{env, fs, thread};
 
 use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
-use log::info;
 use self_update::cargo_crate_version;
 
 use crate::tcp_receiver::get_local_ip_address;
 
 mod renderer;
 mod tcp_receiver;
+mod updater;
 
 type ImageData = Vec<u8>;
 type ImageHandle = Option<(u128, ImageData)>;
@@ -28,7 +26,7 @@ fn main() -> Result<(), eframe::Error> {
     env_logger::init();
 
     // Check for updates
-    update();
+    updater::update();
 
     // Cleanup data directory
     fs::remove_dir_all(sensor_core::get_cache_base_dir()).unwrap_or_default(); // Ignore errors
@@ -64,8 +62,8 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_simple_native("Sensor Display", options, move |ctx, _frame| {
         let resolution = format!(
             "{}x{}",
-            ctx.screen_rect().width(),
-            ctx.screen_rect().height()
+            ctx.screen_rect().width() as i16,
+            ctx.screen_rect().height() as i16
         );
 
         // Install image loaders
@@ -74,7 +72,7 @@ fn main() -> Result<(), eframe::Error> {
         // Do not show the cursor
         ctx.set_cursor_icon(egui::CursorIcon::None);
 
-        // Reduced display frequency to reduce system load
+        // Reduced display update frequency to reduce system load
         ctx.request_repaint_after(Duration::from_millis(250));
 
         egui::Area::new("main_area")
@@ -144,42 +142,4 @@ fn build_standby_text(local_ip: &str, hostname: &str, display_resolution: &str) 
         hostname,
         display_resolution
     )
-}
-
-/// Checks for updates
-/// If an update is available, download and install it
-/// If no update is available, do nothing
-/// Automatically restart the application after update
-fn update() {
-    // In release mode, don't ask for confirmation
-    let no_confirm: bool = !cfg!(debug_assertions);
-
-    let status = self_update::backends::github::Update::configure()
-        .repo_owner("rouhim")
-        .repo_name("sensor-display")
-        .bin_name("sensor-display")
-        .show_download_progress(true)
-        .no_confirm(no_confirm)
-        .current_version(cargo_crate_version!())
-        .build()
-        .unwrap()
-        .update_extended();
-
-    if status.is_ok() && status.unwrap().updated() {
-        info!("Respawning after update...");
-
-        let current_exe = env::current_exe();
-        let mut command = Command::new(current_exe.unwrap());
-        command.args(env::args().skip(1));
-
-        #[cfg(unix)]
-        {
-            let _err = command.exec();
-        }
-
-        #[cfg(windows)]
-        {
-            let _status = command.spawn().and_then(|mut c| c.wait()).unwrap();
-        }
-    }
 }
