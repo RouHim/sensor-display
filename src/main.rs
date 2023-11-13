@@ -1,10 +1,10 @@
+use std::{env, fs, thread};
 use std::ops::Deref;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::{env, fs, thread};
 
 use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
@@ -54,7 +54,7 @@ fn main() -> Result<(), eframe::Error> {
         tcp_receiver::receive(write_image_data_mutex, listener);
     });
 
-    let ip = get_local_ip_address().join(", ").clone();
+    let mut ip = get_local_ip_address().join(", ").trim().to_string().clone();
     let hostname = hostname::get().unwrap().into_string().unwrap();
 
     // Holds the ids (timestamps) of the cached images
@@ -115,6 +115,9 @@ fn main() -> Result<(), eframe::Error> {
                 }
                 // No new freshly rendered image or cached image available, show standby text
                 else if cached_image_index.is_empty() {
+                    if ip.is_empty() {
+                        ip = get_local_ip_address().join(", ").trim().to_string().clone();
+                    }
                     ui.label(&build_standby_text(&ip, &hostname, &resolution));
                 }
                 // Show the cached image
