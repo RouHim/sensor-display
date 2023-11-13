@@ -1,3 +1,10 @@
+## [1.11.1](https://github.com/RouHim/sensor-display/compare/1.11.0...1.11.1) (2023-11-13)
+
+
+### Bug Fixes
+
+* self-restart ([222954f](https://github.com/RouHim/sensor-display/commit/222954f664c3732f814823ebee458fc6bb30e097))
+
 # [1.11.0](https://github.com/RouHim/sensor-display/compare/1.10.9...1.11.0) (2023-11-13)
 
 
