@@ -12,7 +12,7 @@ use sensor_core::{
     SensorValue, TransportMessage, TransportType,
 };
 
-use crate::renderer;
+use crate::{renderer, SharedImageHandle};
 
 const PORT: u16 = 10489;
 
@@ -31,10 +31,7 @@ pub fn listen() -> (NodeHandler<()>, NodeListener<()>) {
     (handler, listener)
 }
 
-pub fn receive(
-    ui_display_image_handle: Arc<Mutex<Option<Vec<u8>>>>,
-    tcp_listener: NodeListener<()>,
-) {
+pub fn receive(ui_display_image_handle: SharedImageHandle, tcp_listener: NodeListener<()>) {
     let render_busy_indicator = Arc::new(Mutex::new(false));
     let sensor_value_history: Arc<Mutex<Vec<Vec<SensorValue>>>> = Arc::new(Mutex::new(Vec::new()));
     let fonts_data: Arc<Mutex<HashMap<String, Vec<u8>>>> = Arc::new(Mutex::new(HashMap::new()));
@@ -57,7 +54,7 @@ pub fn receive(
 }
 
 fn handle_input_message(
-    ui_display_image_handle: &Arc<Mutex<Option<Vec<u8>>>>,
+    ui_display_image_handle: &SharedImageHandle,
     render_busy_indicator: &Arc<Mutex<bool>>,
     sensor_value_history: &Arc<Mutex<Vec<Vec<SensorValue>>>>,
     fonts_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,

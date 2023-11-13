@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 use std::io::Cursor;
-
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
+use crate::SharedImageHandle;
 use log::info;
 use sensor_core::{RenderData, SensorValue};
 
 const MAX_SENSOR_VALUE_HISTORY: usize = 1000;
 
 pub fn render_image(
-    ui_display_image_handle: &Arc<Mutex<Option<Vec<u8>>>>,
+    ui_display_image_handle: &SharedImageHandle,
     sensor_value_history: &Arc<Mutex<Vec<Vec<SensorValue>>>>,
     render_data: RenderData,
     fonts_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
@@ -52,9 +52,15 @@ pub fn render_image(
         .write_to(&mut cursor, image::ImageOutputFormat::Jpeg(100))
         .unwrap();
 
+    // Current unix timestamp
+    let unix_timestamp_nano = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+
     // Write image data to ui mutex
     let mut mutex = ui_display_image_handle.lock().unwrap();
-    *mutex = Some(image_data);
+    *mutex = Some((unix_timestamp_nano, image_data));
 
     info!("Total time: {:?}", lcd_render_time.duration_since(start));
     info!("---");
