@@ -1,3 +1,11 @@
+# [1.11.0](https://github.com/RouHim/sensor-display/compare/1.10.9...1.11.0) (2023-11-13)
+
+
+### Features
+
+* set ip if available ([29bf78d](https://github.com/RouHim/sensor-display/commit/29bf78d4f249e45b30c25e1182c624f3a4508363))
+* set ip if available ([42f047f](https://github.com/RouHim/sensor-display/commit/42f047fc1af80576a96281bdcae06e0add7feaee))
+
 ## [1.10.9](https://github.com/RouHim/sensor-display/compare/1.10.8...1.10.9) (2023-11-13)
 
 
