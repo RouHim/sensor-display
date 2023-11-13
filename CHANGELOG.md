@@ -1,3 +1,11 @@
+## [1.10.9](https://github.com/RouHim/sensor-display/compare/1.10.8...1.10.9) (2023-11-13)
+
+
+### Bug Fixes
+
+* memory leak ([8e61873](https://github.com/RouHim/sensor-display/commit/8e61873368f498f8178304123c146054b7cb8eb3))
+* memory leak ([8b5479c](https://github.com/RouHim/sensor-display/commit/8b5479c6d2edf73292395aba6a7c87f1857a5ab1))
+
 ## [1.10.8](https://github.com/RouHim/sensor-display/compare/1.10.7...1.10.8) (2023-11-10)
 
 ## [1.10.7](https://github.com/RouHim/sensor-display/compare/1.10.6...1.10.7) (2023-11-07)
