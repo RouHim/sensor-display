@@ -1,3 +1,5 @@
+## [1.11.2](https://github.com/RouHim/sensor-display/compare/1.11.1...1.11.2) (2023-11-21)
+
 ## [1.11.1](https://github.com/RouHim/sensor-display/compare/1.11.0...1.11.1) (2023-11-13)
 
 
