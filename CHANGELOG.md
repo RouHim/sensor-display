@@ -1,3 +1,16 @@
+# [1.12.0](https://github.com/RouHim/sensor-display/compare/1.11.2...1.12.0) (2023-12-19)
+
+
+### Bug Fixes
+
+* **pipeline:** do not fail on unused dependencies ([97e76f1](https://github.com/RouHim/sensor-display/commit/97e76f1d710d97611f62cb142e783b8c7bdcf37e))
+* **renderer:** attempt to solve the locked in rendering thread ([0dfddae](https://github.com/RouHim/sensor-display/commit/0dfddaeb0013e0eeb6adc39c6da6b652f8b4a94a))
+
+
+### Features
+
+* **rendering:** catch render errors ([e3d07e8](https://github.com/RouHim/sensor-display/commit/e3d07e84743e42268d23c7bbd842b121a8d31b9d))
+
 ## [1.11.2](https://github.com/RouHim/sensor-display/compare/1.11.1...1.11.2) (2023-11-21)
 
 ## [1.11.1](https://github.com/RouHim/sensor-display/compare/1.11.0...1.11.1) (2023-11-13)
