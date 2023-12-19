@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/RouHim/sensor-display/compare/1.13.0...1.14.0) (2023-12-19)
+
+
+### Features
+
+* **egui:** migrate egui 0.23->0.24 ([829e1ec](https://github.com/RouHim/sensor-display/commit/829e1ecc60ccf04094fbce87bd510813c1ed939d))
+
 # [1.13.0](https://github.com/RouHim/sensor-display/compare/1.12.0...1.13.0) (2023-12-19)
 
 
