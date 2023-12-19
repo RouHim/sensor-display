@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use local_ip_address::local_ip;
-use log::{info, warn};
+use log::{error, info, warn};
 use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
 use rayon::prelude::*;
@@ -12,6 +12,7 @@ use sensor_core::{
     SensorValue, TransportMessage, TransportType,
 };
 
+use crate::ignore_poison_lock::LockResultExt;
 use crate::{renderer, SharedImageHandle};
 
 const PORT: u16 = 10489;
@@ -60,17 +61,21 @@ fn handle_input_message(
     fonts_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
     data: &[u8],
 ) {
+    info!("Received new sensor data: {:?} Bytes", data.len());
+
     let transport_message: TransportMessage = bincode::deserialize(data).unwrap();
     let transport_type = transport_message.transport_type;
     let transport_data = transport_message.data;
     let fonts_data = fonts_data.clone();
+
+    info!("Type: {:?}", transport_type);
 
     match transport_type {
         TransportType::PrepareText => {
             let prep_data: PrepareTextData =
                 bincode::deserialize(transport_data.as_slice()).unwrap();
 
-            let mut font_data_lock = fonts_data.lock().unwrap();
+            let mut font_data_lock = fonts_data.lock().ignore_poison();
             font_data_lock.clear();
             font_data_lock.extend(prep_data.font_data);
         }
@@ -86,7 +91,7 @@ fn handle_input_message(
         }
         TransportType::RenderImage => {
             // If already rendering, skip this frame
-            if *render_busy_indicator.lock().unwrap() {
+            if *render_busy_indicator.lock().ignore_poison() {
                 warn!(
                     "Received new sensor data, but rendering is still in progress, skipping frame!"
                 );
@@ -104,15 +109,21 @@ fn handle_input_message(
                 let render_data: RenderData =
                     bincode::deserialize(transport_data.as_slice()).unwrap();
 
-                renderer::render_image(
-                    &ui_display_image_handle,
-                    &sensor_value_history,
-                    render_data,
-                    &fonts_data,
-                );
+                let result = std::panic::catch_unwind(|| {
+                    renderer::render_image(
+                        &ui_display_image_handle,
+                        &sensor_value_history,
+                        render_data,
+                        &fonts_data,
+                    );
+                });
 
                 // End rendering
                 *render_busy_indicator.lock().unwrap() = false;
+
+                if let Err(err) = result {
+                    error!("Error while rendering: {:?}", err);
+                }
             });
         }
     }

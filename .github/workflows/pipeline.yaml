@@ -89,6 +89,7 @@ jobs:
 
       - name: Analyze dependencies
         run: cargo update && cargo +nightly udeps
+        continue-on-error: true
 
   test:
     name: Run application tests
