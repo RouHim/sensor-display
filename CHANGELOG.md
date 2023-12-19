@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/RouHim/sensor-display/compare/1.12.0...1.13.0) (2023-12-19)
+
+
+### Features
+
+* add readme ([516172d](https://github.com/RouHim/sensor-display/commit/516172d3884ce227c548440cbe94859c63ad5a6d))
+
 # [1.12.0](https://github.com/RouHim/sensor-display/compare/1.11.2...1.12.0) (2023-12-19)
 
 
