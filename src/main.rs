@@ -1,15 +1,17 @@
 use std::ops::Deref;
 use std::{env, fs, thread};
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LockResult, Mutex};
 use std::time::Duration;
 
+use crate::ignore_poison_lock::LockResultExt;
 use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
 use self_update::cargo_crate_version;
 
 use crate::tcp_receiver::get_local_ip_address;
 
+mod ignore_poison_lock;
 mod renderer;
 mod tcp_receiver;
 mod updater;
@@ -78,8 +80,8 @@ fn main() -> Result<(), eframe::Error> {
         egui::Area::new("main_area")
             .fixed_pos(egui::pos2(0.0, 0.0))
             .show(ctx, |ui| {
-                let mut image_mutex = image_data_mutex.lock().unwrap();
-                let mut cached_image_index = cached_image_index.lock().unwrap();
+                let mut image_mutex = image_data_mutex.lock().ignore_poison();
+                let mut cached_image_index = cached_image_index.lock().ignore_poison();
 
                 // A new image was rendered
                 if let Some(image_data) = image_mutex.deref() {

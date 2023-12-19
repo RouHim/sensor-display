@@ -3,6 +3,7 @@ use std::io::Cursor;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
+use crate::ignore_poison_lock::LockResultExt;
 use crate::SharedImageHandle;
 use log::info;
 use sensor_core::{RenderData, SensorValue};
@@ -19,7 +20,7 @@ pub fn render_image(
 
     // Insert last sensor values into sensor value history
     let last_sensor_values = render_data.sensor_values;
-    let mut sensor_value_history = sensor_value_history.lock().unwrap();
+    let mut sensor_value_history = sensor_value_history.lock().ignore_poison();
     sensor_value_history.insert(0, last_sensor_values);
 
     // Limit sensor value history to MAX_SENSOR_VALUE_HISTORY
@@ -36,7 +37,7 @@ pub fn render_image(
     let image_buffer = sensor_core::render_lcd_image(
         render_data.display_config,
         &sensor_value_history,
-        fonts_data.lock().unwrap().deref(),
+        fonts_data.lock().ignore_poison().deref(),
     );
 
     let lcd_render_time = std::time::Instant::now();
@@ -59,7 +60,7 @@ pub fn render_image(
         .as_nanos();
 
     // Write image data to ui mutex
-    let mut mutex = ui_display_image_handle.lock().unwrap();
+    let mut mutex = ui_display_image_handle.lock().ignore_poison();
     *mutex = Some((unix_timestamp_nano, image_data));
 
     info!("Total time: {:?}", lcd_render_time.duration_since(start));
