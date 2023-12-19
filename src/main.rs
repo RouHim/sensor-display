@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::{env, fs, thread};
 
-use std::sync::{Arc, LockResult, Mutex};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::ignore_poison_lock::LockResultExt;

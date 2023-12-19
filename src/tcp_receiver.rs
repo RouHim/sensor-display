@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use local_ip_address::local_ip;
-use log::{info, warn};
+use log::{error, info, warn};
 use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeHandler, NodeListener};
 use rayon::prelude::*;
@@ -102,8 +102,6 @@ fn handle_input_message(
             let ui_display_image_handle = ui_display_image_handle.clone();
             let sensor_value_history = sensor_value_history.clone();
 
-            // FIXME: This is a workaround to avoid a deadlock when rendering
-            // The Problem is that busy indicator is never set to false, because ?
             thread::spawn(move || {
                 // Begin rendering
                 *render_busy_indicator.lock().unwrap() = true;
@@ -111,15 +109,21 @@ fn handle_input_message(
                 let render_data: RenderData =
                     bincode::deserialize(transport_data.as_slice()).unwrap();
 
-                renderer::render_image(
-                    &ui_display_image_handle,
-                    &sensor_value_history,
-                    render_data,
-                    &fonts_data,
-                );
+                let result = std::panic::catch_unwind(|| {
+                    renderer::render_image(
+                        &ui_display_image_handle,
+                        &sensor_value_history,
+                        render_data,
+                        &fonts_data,
+                    );
+                });
 
                 // End rendering
                 *render_busy_indicator.lock().unwrap() = false;
+
+                if let Err(err) = result {
+                    error!("Error while rendering: {:?}", err);
+                }
             });
         }
     }
