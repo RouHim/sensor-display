@@ -33,14 +33,12 @@ fn main() -> Result<(), eframe::Error> {
     // Cleanup data directory
     fs::remove_dir_all(sensor_core::get_cache_base_dir()).unwrap_or_default(); // Ignore errors
 
-    // Fullscreen without border
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(320.0, 240.0)),
-        active: true,
-        decorated: false,
-        fullscreen: true,
-        drag_and_drop_support: false,
-
+    let native_options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_active(true)
+            .with_decorations(false)
+            .with_fullscreen(true)
+            .with_drag_and_drop(false),
         ..Default::default()
     };
 
@@ -61,7 +59,7 @@ fn main() -> Result<(), eframe::Error> {
     let cached_image_index: Arc<Mutex<Vec<u128>>> = Arc::new(Mutex::new(Vec::new()));
 
     // Render loop
-    eframe::run_simple_native("Sensor Display", options, move |ctx, _frame| {
+    eframe::run_simple_native("Sensor Display", native_options, move |ctx, _frame| {
         let resolution = format!(
             "{}x{}",
             ctx.screen_rect().width() as i16,
