@@ -1,3 +1,10 @@
+## [1.14.1](https://github.com/RouHim/sensor-display/compare/1.14.0...1.14.1) (2023-12-21)
+
+
+### Bug Fixes
+
+* **rendering:** catch errors when deserializing ([a31ee8f](https://github.com/RouHim/sensor-display/commit/a31ee8fd99c61e6f553e70ae91c07b754ab9d185))
+
 # [1.14.0](https://github.com/RouHim/sensor-display/compare/1.13.0...1.14.0) (2023-12-19)
 
 
