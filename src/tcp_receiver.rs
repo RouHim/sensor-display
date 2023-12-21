@@ -106,10 +106,10 @@ fn handle_input_message(
                 // Begin rendering
                 *render_busy_indicator.lock().unwrap() = true;
 
-                let render_data: RenderData =
-                    bincode::deserialize(transport_data.as_slice()).unwrap();
-
                 let result = std::panic::catch_unwind(|| {
+                    let render_data: RenderData =
+                        bincode::deserialize(transport_data.as_slice()).unwrap();
+
                     renderer::render_image(
                         &ui_display_image_handle,
                         &sensor_value_history,
