@@ -1,3 +1,10 @@
+## [1.14.2](https://github.com/RouHim/sensor-display/compare/1.14.1...1.14.2) (2023-12-28)
+
+
+### Bug Fixes
+
+* **rendering:** fix chart renderer ([43c6c40](https://github.com/RouHim/sensor-display/commit/43c6c401453d790f1cb264f97c851a6c9170adca))
+
 ## [1.14.1](https://github.com/RouHim/sensor-display/compare/1.14.0...1.14.1) (2023-12-21)
 
 
