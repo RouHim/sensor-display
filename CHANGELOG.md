@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/RouHim/sensor-display/compare/1.15.0...1.16.0) (2024-01-02)
+
+
+### Features
+
+* resolves [#45](https://github.com/RouHim/sensor-display/issues/45) ([c1fe0bb](https://github.com/RouHim/sensor-display/commit/c1fe0bb99c9bc0d7709408eab78f7e95902737a6))
+
 # [1.15.0](https://github.com/RouHim/sensor-display/compare/1.14.3...1.15.0) (2024-01-02)
 
 
