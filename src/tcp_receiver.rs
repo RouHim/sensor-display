@@ -106,9 +106,10 @@ fn handle_input_message(
                 // Begin rendering
                 *render_busy_indicator.lock().unwrap() = true;
 
-                let result = std::panic::catch_unwind(|| {
-                    let render_data: RenderData =
-                        bincode::deserialize(transport_data.as_slice()).unwrap();
+                // Define render closure, so the if something in the render process goes wrong, we can
+                // still end the render process and set the render_busy_indicator to false
+                let do_render = || -> Result<(), Box<dyn std::error::Error>> {
+                    let render_data: RenderData = bincode::deserialize(transport_data.as_slice())?;
 
                     renderer::render_image(
                         &ui_display_image_handle,
@@ -116,14 +117,17 @@ fn handle_input_message(
                         render_data,
                         &fonts_data,
                     );
-                });
+
+                    Ok(())
+                };
+
+                // Render image
+                if let Err(e) = do_render() {
+                    error!("Error while rendering image: {:?}", e);
+                }
 
                 // End rendering
                 *render_busy_indicator.lock().unwrap() = false;
-
-                if let Err(err) = result {
-                    error!("Error while rendering: {:?}", err);
-                }
             });
         }
     }
