@@ -1,3 +1,11 @@
+# [1.17.0](https://github.com/RouHim/sensor-display/compare/1.16.0...1.17.0) (2024-01-02)
+
+
+### Features
+
+* **pipeline:** avoid concurrent builds per branch ([06c129f](https://github.com/RouHim/sensor-display/commit/06c129fefc45f8c0bafdb75cbcb07848b1d38a2c))
+* **renderer:** support of min/max/avg ([065d0fa](https://github.com/RouHim/sensor-display/commit/065d0fa911324c9f00d7d6affad1bc6b41d28aa3))
+
 # [1.16.0](https://github.com/RouHim/sensor-display/compare/1.15.0...1.16.0) (2024-01-02)
 
 
