@@ -2968,9 +2968,9 @@ checksum = "836fa6a3e1e547f9a2c4040802ec865b5d85f4014efe00555d7090a3dcaa1090"
 
 [[package]]
 name = "sensor-core"
-version = "1.12.0"
+version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6c3dc40de0754dff1e37baef1124f213768ce13ab5c90c4ccafe4eccbcdea6e"
+checksum = "3dd7f4b52db35a883a2877a71c8a0a13418fef99607106f34cedbf7d5edb626e"
 dependencies = [
  "dirs",
  "image",
