@@ -17,7 +17,7 @@ jobs:
 
   check-repo:
     name: Check git repository
-    runs-on: ${{ env.RUNNER }}
+    runs-on: $RUNNER
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
