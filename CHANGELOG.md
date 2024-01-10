@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/RouHim/sensor-display/compare/1.18.0...1.19.0) (2024-01-10)
+
+
+### Features
+
+* **deps:** 20.04 for building, the rest is 22.04 ([5fee2b0](https://github.com/RouHim/sensor-display/commit/5fee2b0fd6e3aec7b0ee547c69a4602c606f45ba))
+
 # [1.18.0](https://github.com/RouHim/sensor-display/compare/1.17.4...1.18.0) (2024-01-10)
 
 
