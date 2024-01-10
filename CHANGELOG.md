@@ -1,3 +1,15 @@
+# [1.18.0](https://github.com/RouHim/sensor-display/compare/1.17.4...1.18.0) (2024-01-10)
+
+
+### Features
+
+* **deps:** 20.04 for building, the rest is 22.04 ([e9910b0](https://github.com/RouHim/sensor-display/commit/e9910b00bc1f4a19588f7f10cceafd244f9cbf72))
+* **deps:** bump 3rd party patches ([cd77b3e](https://github.com/RouHim/sensor-display/commit/cd77b3ebeed624cb4acd11de60dc90d876097a85))
+* **pipeline:** pin version for github actions workflow runner ([32867c6](https://github.com/RouHim/sensor-display/commit/32867c67e8df215437aa429d218fdb0b24d6219f))
+* **pipeline:** use old ubuntu for building to get old glibc version ([df6d107](https://github.com/RouHim/sensor-display/commit/df6d10721a314da09a17a511bf31231407d73c1c))
+* **pipeline:** use old ubuntu for building to get old glibc version ([b7981a2](https://github.com/RouHim/sensor-display/commit/b7981a22b16c4a022df07c830afcd9127221d7f7))
+* **pipeline:** use old ubuntu for building to get old glibc version ([36be572](https://github.com/RouHim/sensor-display/commit/36be57284349bac6ccc5c01260fc57b16c0d8ce2))
+
 ## [1.17.4](https://github.com/RouHim/sensor-display/compare/1.17.3...1.17.4) (2024-01-06)
 
 ## [1.17.3](https://github.com/RouHim/sensor-display/compare/1.17.2...1.17.3) (2024-01-06)
