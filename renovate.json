@@ -13,8 +13,7 @@
     },
     {
       "matchDatasources": ["github-actions"],
-      "matchPackageNames": ["ubuntu"],
-      "allowedVersions": "20.04"
+      "excludePackageNames": ["ubuntu"],
     }
   ]
 }
