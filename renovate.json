@@ -1,6 +1,10 @@
 {
   "packageRules": [
     {
+    "matchDatasources": ["github-runners"],
+    "enabled": false
+  },
+    {
       "matchUpdateTypes": [
         "major",
         "minor",
@@ -10,10 +14,6 @@
       ],
       "automerge": true,
       "automergeType": "branch"
-    },
-    {
-      "matchDatasources": ["github-actions"],
-      "excludePackageNames": ["ubuntu"],
     }
   ]
 }
