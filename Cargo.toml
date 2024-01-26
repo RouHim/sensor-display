@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 sensor-core = "1.12.2"                                                                 # Sensor core
-serde = { version = "1.0.195", features = ["derive"] }                                  # De/Serialization
+serde = { version = "1.0.196", features = ["derive"] }                                  # De/Serialization
 bincode = "1.3.3"                                                                       # Bincode De/Serialization
 rayon = "1.8.1"                                                                         # Parallelization
 message-io = { version = "0.18.0", default-features = false, features = ["tcp"] }       # TCP transport
