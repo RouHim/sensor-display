@@ -7,7 +7,7 @@ edition = "2021"
 sensor-core = "1.12.5"                                                                 # Sensor core
 serde = { version = "1.0.197", features = ["derive"] }                                  # De/Serialization
 bincode = "1.3.3"                                                                       # Bincode De/Serialization
-rayon = "1.8.1"                                                                         # Parallelization
+rayon = "1.9.0"                                                                         # Parallelization
 message-io = { version = "0.18.1", default-features = false, features = ["tcp"] }       # TCP transport
 image = "0.24.9"                                                                        # Image processing
 eframe = "0.24.1"                                                                        # GUI
