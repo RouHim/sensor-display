@@ -15,7 +15,7 @@ egui_extras = { version = "0.24.2", features = ["image"] }                      
 log = "0.4.21"                                                                          # Logging
 env_logger = "0.11.2"                                                                   # Logging
 local-ip-address = "0.6.1"                                                              # Local IP address
-hostname = "0.3.1"                                                                      # Hostname
+hostname = "0.4.0"                                                                      # Hostname
 self_update = { version = "0.39.0", features = ["rustls"], default-features = false }   # Self update
 
 [profile.release]
