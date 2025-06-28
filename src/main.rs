@@ -9,11 +9,11 @@ use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
 use self_update::cargo_crate_version;
 
-use crate::tcp_receiver::get_local_ip_address;
+use crate::http_client::get_local_ip_address;
 
+mod http_client;
 mod ignore_poison_lock;
 mod renderer;
-mod tcp_receiver;
 mod updater;
 
 type ImageData = Vec<u8>;
@@ -45,11 +45,29 @@ fn main() -> Result<(), eframe::Error> {
     // Create handler for asynchronous image data rendering
     let image_data_mutex: SharedImageHandle = Arc::new(Mutex::new(None));
 
-    // Create new thread to listen for tcp messages
+    // Create new thread to connect to HTTP server and receive data
     let write_image_data_mutex = image_data_mutex.clone();
     thread::spawn(move || {
-        let (_handler, listener) = tcp_receiver::listen();
-        tcp_receiver::receive(write_image_data_mutex, listener);
+        // Try to automatically discover server address
+        let server_address =
+            http_client::detect_server_address().unwrap_or_else(|| "127.0.0.1:10489".to_string());
+
+        // Get device name from hostname or use default
+        let device_name = hostname::get()
+            .ok()
+            .and_then(|h| h.into_string().ok())
+            .unwrap_or_else(|| "sensor-display".to_string());
+
+        // Create display config (could be enhanced to detect actual screen properties)
+        let display_config = http_client::create_display_config_from_screen();
+
+        let config = http_client::HttpClientConfig {
+            server_address,
+            device_name,
+            display_config,
+        };
+
+        http_client::start_client(write_image_data_mutex, Some(config));
     });
 
     let mut ip = get_local_ip_address().join(", ").trim().to_string().clone();
@@ -116,7 +134,7 @@ fn main() -> Result<(), eframe::Error> {
                     if ip.is_empty() {
                         ip = get_local_ip_address().join(", ").trim().to_string().clone();
                     }
-                    ui.label(&build_standby_text(&ip, &hostname, &resolution));
+                    ui.label(build_standby_text(&ip, &hostname, &resolution));
                 }
                 // Show the cached image
                 else {
