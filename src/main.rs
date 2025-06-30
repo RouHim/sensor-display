@@ -116,7 +116,7 @@ fn main() -> Result<(), eframe::Error> {
                     if ip.is_empty() {
                         ip = get_local_ip_address().join(", ").trim().to_string().clone();
                     }
-                    ui.label(&build_standby_text(&ip, &hostname, &resolution));
+                    ui.label(build_standby_text(&ip, &hostname, &resolution));
                 }
                 // Show the cached image
                 else {

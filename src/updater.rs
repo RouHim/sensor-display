@@ -27,12 +27,12 @@ pub fn update() {
         .update();
 
     match status {
-        Err(err) => error!("Failed to update: {}", err),
+        Err(err) => error!("Failed to update: {err}"),
         Ok(self_update::Status::UpToDate(version)) => {
-            info!("sensor-display {} is up to date", version);
+            info!("sensor-display {version} is up to date");
         }
         Ok(self_update::Status::Updated(version)) => {
-            info!("sensor-display updated to {}", version);
+            info!("sensor-display updated to {version}");
             restart_process(current_exe);
         }
     }
@@ -40,10 +40,10 @@ pub fn update() {
 
 /// Restarts the current process
 fn restart_process(current_exe: PathBuf) {
-    info!("Waiting 5s before restarting {:?} ...", current_exe);
+    info!("Waiting 5s before restarting {current_exe:?} ...");
     thread::sleep(Duration::from_secs(5));
     let err = exec(process::Command::new(current_exe).args(std::env::args().skip(1)));
-    panic!("Failed to restart: {}", err);
+    panic!("Failed to restart: {err}");
 }
 
 /// Replaces the current process with a new one

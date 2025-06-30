@@ -68,7 +68,7 @@ fn handle_input_message(
     let transport_data = transport_message.data;
     let fonts_data = fonts_data.clone();
 
-    info!("Type: {:?}", transport_type);
+    info!("Type: {transport_type:?}");
 
     match transport_type {
         TransportType::PrepareText => {
@@ -123,7 +123,7 @@ fn handle_input_message(
 
                 // Render image
                 if let Err(e) = do_render() {
-                    error!("Error while rendering image: {:?}", e);
+                    error!("Error while rendering image: {e:?}");
                 }
 
                 // End rendering
