@@ -122,10 +122,7 @@ impl SensorBridgeClient {
     pub fn get_sensor_data(
         &self,
     ) -> Result<SensorDataResponse, Box<dyn std::error::Error + Send + Sync>> {
-        let url = format!(
-            "{}/api/sensor-data?mac_address={}",
-            self.server_url, self.mac_address
-        );
+        let url = format!("{}/api/sensors", self.server_url);
 
         let response = self.agent.get(&url).call();
 
