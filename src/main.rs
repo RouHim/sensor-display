@@ -1,5 +1,5 @@
 use std::ops::Deref;
-use std::{env, fs, thread};
+use std::{env, fs};
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -9,11 +9,11 @@ use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
 use self_update::cargo_crate_version;
 
-use crate::tcp_receiver::get_local_ip_address;
+use crate::http_client::get_local_ip_address;
 
+mod http_client;
 mod ignore_poison_lock;
 mod renderer;
-mod tcp_receiver;
 mod updater;
 
 type ImageData = Vec<u8>;
@@ -45,18 +45,23 @@ fn main() -> Result<(), eframe::Error> {
     // Create handler for asynchronous image data rendering
     let image_data_mutex: SharedImageHandle = Arc::new(Mutex::new(None));
 
-    // Create new thread to listen for tcp messages
+    // Get server configuration from environment variables or use defaults
+    let server_host = env::var("SENSOR_BRIDGE_HOST").unwrap_or_else(|_| "localhost".to_string());
+    let server_port = env::var("SENSOR_BRIDGE_PORT")
+        .ok()
+        .and_then(|port| port.parse().ok());
+
+    // Get display resolution from egui context - we'll start the HTTP client after the first frame
     let write_image_data_mutex = image_data_mutex.clone();
-    thread::spawn(move || {
-        let (_handler, listener) = tcp_receiver::listen();
-        tcp_receiver::receive(write_image_data_mutex, listener);
-    });
 
     let mut ip = get_local_ip_address().join(", ").trim().to_string().clone();
     let hostname = hostname::get().unwrap().into_string().unwrap();
 
     // Holds the ids (timestamps) of the cached images
     let cached_image_index: Arc<Mutex<Vec<u128>>> = Arc::new(Mutex::new(Vec::new()));
+
+    // Track if HTTP client has been started
+    let http_client_started = Arc::new(Mutex::new(false));
 
     // Render loop
     eframe::run_simple_native("Sensor Display", native_options, move |ctx, _frame| {
@@ -65,6 +70,35 @@ fn main() -> Result<(), eframe::Error> {
             ctx.screen_rect().width() as i16,
             ctx.screen_rect().height() as i16
         );
+
+        // Start HTTP client on first frame when we have the screen resolution
+        let mut client_started = http_client_started.lock().ignore_poison();
+        if !*client_started {
+            let resolution_tuple = (
+                ctx.screen_rect().width() as u32,
+                ctx.screen_rect().height() as u32,
+            );
+
+            log::info!(
+                "Starting HTTP client with resolution: {}x{}",
+                resolution_tuple.0,
+                resolution_tuple.1
+            );
+
+            http_client::start_http_client(
+                write_image_data_mutex.clone(),
+                server_host.clone(),
+                server_port,
+                resolution_tuple,
+            );
+
+            *client_started = true;
+            log::info!(
+                "HTTP client started. Server: {}:{}",
+                server_host,
+                server_port.unwrap_or(8080)
+            );
+        }
 
         // Install image loaders
         egui_extras::install_image_loaders(ctx);
