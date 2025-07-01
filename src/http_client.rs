@@ -141,7 +141,7 @@ impl SensorBridgeClient {
     pub fn health_check(&self) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let response = self
             .agent
-            .get(&format!("{}/api/health", self.server_url))
+            .get(&format!("{}/health", self.server_url))
             .call();
 
         match response {
