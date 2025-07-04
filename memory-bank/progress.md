@@ -10,12 +10,46 @@
 
 ## Update History
 
-- [2025-06-30 7:18:40 PM] [Unknown User] - Verified implementation against API specification: Completed verification of HTTP client implementation against the official API.md specification. All data structures, endpoints, error handling, and request/response formats match perfectly. The ureq-based client is fully compliant with the sensor-bridge server API.
-- [2025-06-30 7:03:00 PM] [Unknown User] - Completed migration from reqwest to ureq: Successfully replaced reqwest (async) with ureq (synchronous) HTTP client. Updated Cargo.toml dependencies, converted http_client.rs to use ureq's synchronous API, removed tokio::main from main.rs, and verified successful compilation in both debug and release modes.
-- [2025-06-30 6:57:19 PM] [Unknown User] - Starting migration from reqwest to ureq: User requested to replace reqwest (async) with ureq (sync) HTTP client. This will simplify the codebase by removing async/await complexity and tokio dependency.
-- [2025-06-30 6:56:06 PM] [Unknown User] - Completed HTTP migration and testing: Successfully removed old tcp_receiver.rs file, completed release build with only minor warnings about unused fields (which is normal), and verified no CI/CD pipeline files need updating. The application now fully uses HTTP communication instead of TCP.
-- [2025-06-30 6:50:39 PM] [Unknown User] - Updated README.md documentation: Completely rewrote README.md to document the new HTTP-based communication protocol, added configuration instructions, setup steps, troubleshooting guide, and removed all references to the old TCP approach
-- [2025-06-30 6:47:53 PM] [Unknown User] - Created HTTP client module and updated main.rs: Implemented new http_client.rs module with MAC address detection, client registration, and sensor data polling. Updated main.rs to use async/await pattern and HTTP client instead of TCP receiver.
-- [2025-06-30 6:46:21 PM] [Unknown User] - Updated Cargo.toml dependencies: Replaced message-io TCP dependency with reqwest HTTP client, added tokio async runtime, serde_json for JSON handling, and mac_address crate for MAC address detection
+- [2025-07-04 3:09:57 PM] [Unknown User] - Fixed client-server compatibility issues: Successfully identified and resolved two critical compatibility issues between sensor-display client and sensor-bridge server:
+
+1. MAC Address Format Mismatch:
+   - Problem: Client sends uppercase MAC (7C:21:4A:40:28:51), server expects lowercase (7c:21:4a:40:28:51)
+   - Solution: Added normalize_mac_address() function to client that matches server's normalization logic
+   - Impact: Prevents registration failures
+
+2. Missing Static Data Integration:
+   - Problem: Client receives fonts/images during registration but doesn't use them in rendering
+   - Solution: Modified start_http_client() to store static data and pass it to renderer
+   - Impact: Enables proper rendering with server-provided assets
+
+Both fixes ensure full protocol compatibility between client and server implementations.
+- [2025-07-04 3:08:39 PM] [Unknown User] - Decision Made: Client-Server MAC Address Compatibility Issue
+- [2025-07-04 3:00:23 PM] [Unknown User] - Updated /api/register endpoint handling: Successfully updated the sensor-display application to match the new API specification:
+
+1. ✅ Replaced old TransportMessage parsing with new StaticClientData struct
+2. ✅ Updated registration method to deserialize single bincode struct instead of three separate messages
+3. ✅ Fixed RegistrationResult to use HashMap types for text_data, static_image_data, and conditional_image_data
+4. ✅ Updated comments and logging to reflect new API structure
+5. ✅ Compilation successful with no errors
+
+Key changes:
+- StaticClientData struct now matches API specification exactly
+- Single bincode::deserialize() call replaces complex multi-message parsing
+- Proper HashMap data structures for font, static image, and conditional image data
+- Updated Cargo.toml comment to reflect StaticClientData instead of TransportMessage
+
+The application is now ready to work with the updated /api/register endpoint that returns binary StaticClientData instead of the old TransportMessage format.
+- [2025-07-04 2:47:15 PM] [Unknown User] - Implemented binary data transfer for registration endpoint: Successfully implemented a solution to transfer text_data, static_image_data, and conditional_image_data to clients through the registration HTTP endpoint using bincode serialization. The implementation includes:
+
+1. Created StaticClientData struct to bundle all three data types
+2. Updated prepare_static_data_for_client function to serialize data with bincode
+3. Modified registration endpoint to return binary data with proper content-type
+4. Used existing bincode dependency for efficient serialization
+5. Added proper error handling and logging
+
+The solution is efficient, uses existing dependencies, and follows best practices for binary data transfer over HTTP.
+- [2025-07-02 8:09:13 AM] [Unknown User] - Decision Made: HTTP Client Registration Update Completed
+- [2025-07-02 8:08:48 AM] [Unknown User] - Updated HTTP client registration method: Successfully updated the register method to handle binary data instead of JSON response. Fixed compilation error with response usage. The method now processes three types of preparation data (text, static image, conditional image) from binary TransportMessage structs serialized with bincode. Added proper error handling for both JSON errors and binary data processing.
+- [2025-07-02 8:04:41 AM] [Unknown User] - Analyzed current HTTP client implementation: Found that the current register method uses ureq to send JSON and expects JSON response. Need to update to handle binary data with three types of preparation data: text, static image, and conditional image. The binary data contains TransportMessage structs serialized with bincode.
 - [Date] - [Update]
 - [Date] - [Update]
