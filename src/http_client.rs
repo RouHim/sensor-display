@@ -14,7 +14,7 @@ use crate::{renderer, SharedImageHandle};
 
 use rayon::prelude::*;
 
-const DEFAULT_SERVER_PORT: u16 = 8080;
+const DEFAULT_SERVER_PORT: u16 = 25555;
 const POLL_INTERVAL_MS: u64 = 1000;
 
 /// Static client data received from registration endpoint
@@ -100,7 +100,7 @@ impl SensorBridgeClient {
             .to_string();
 
         // Normalize MAC address to match server format (lowercase with colons)
-        let normalized_mac = mac_address.to_lowercase();
+        let normalized_mac = mac_address.to_uppercase();
 
         let ip_address = local_ip()
             .map_err(|e| format!("Failed to get local IP: {e}"))?
