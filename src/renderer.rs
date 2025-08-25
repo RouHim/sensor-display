@@ -15,6 +15,8 @@ pub fn render_image(
     sensor_value_history: &Arc<Mutex<Vec<Vec<SensorValue>>>>,
     render_data: RenderData,
     fonts_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
+    image_width: u32,
+    image_height: u32,
 ) {
     let start = std::time::Instant::now();
 
@@ -35,9 +37,11 @@ pub fn render_image(
     );
 
     let image_buffer = sensor_core::render_lcd_image(
-        render_data.display_config,
+        &render_data.elements,
         &sensor_value_history,
         fonts_data.lock().ignore_poison().deref(),
+        image_width,
+        image_height
     );
 
     let lcd_render_time = std::time::Instant::now();

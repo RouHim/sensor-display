@@ -6,7 +6,7 @@ use std::time::Duration;
 use local_ip_address::local_ip;
 use log::{error, info, warn};
 use mac_address::get_mac_address;
-use sensor_core::{ElementType, RenderData, SensorValue};
+use sensor_core::{ElementConfig, ElementType, RenderData, SensorValue};
 use serde::{Deserialize, Serialize};
 
 use crate::ignore_poison_lock::LockResultExt;
@@ -66,7 +66,7 @@ pub struct RegisteredClient {
     pub resolution_height: u32,
     pub active: bool,
     pub last_seen: u64,
-    pub display_config: sensor_core::DisplayConfig,
+    elements: Vec<ElementConfig>,
 }
 
 /// Sensor data response from server
@@ -293,6 +293,8 @@ pub fn start_http_client(
                         &static_image_data,
                         &conditional_image_data,
                         response.render_data,
+                        client.resolution_width,
+                        client.resolution_height,
                     );
                 }
                 Err(e) => {
@@ -324,6 +326,8 @@ fn handle_render_data(
     static_image_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
     conditional_image_data: &Arc<Mutex<HashMap<String, HashMap<String, Vec<u8>>>>>,
     render_data: RenderData,
+    image_width: u32,
+    image_height: u32,
 ) {
     // If already rendering, skip this frame
     if *render_busy_indicator.lock().ignore_poison() {
@@ -358,6 +362,8 @@ fn handle_render_data(
                 &sensor_value_history,
                 render_data,
                 &fonts_data,
+                image_width,
+                image_height,
             );
             Ok(())
         };
