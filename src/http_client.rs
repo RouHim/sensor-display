@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::io::Read;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use local_ip_address::local_ip;
@@ -232,13 +232,14 @@ pub fn start_http_client(
     server_port: Option<u16>,
     resolution: (u32, u32),
 ) {
-    let render_busy_indicator = Arc::new(Mutex::new(false));
-    let sensor_value_history: Arc<Mutex<Vec<Vec<SensorValue>>>> = Arc::new(Mutex::new(Vec::new()));
-    let fonts_data: Arc<Mutex<HashMap<String, Vec<u8>>>> = Arc::new(Mutex::new(HashMap::new()));
-    let static_image_data: Arc<Mutex<HashMap<String, Vec<u8>>>> =
-        Arc::new(Mutex::new(HashMap::new()));
-    let conditional_image_data: Arc<Mutex<HashMap<String, HashMap<String, Vec<u8>>>>> =
-        Arc::new(Mutex::new(HashMap::new()));
+    let render_busy_indicator = Arc::new(RwLock::new(false));
+    let sensor_value_history: Arc<RwLock<Vec<Vec<SensorValue>>>> =
+        Arc::new(RwLock::new(Vec::new()));
+    let fonts_data: Arc<RwLock<HashMap<String, Vec<u8>>>> = Arc::new(RwLock::new(HashMap::new()));
+    let static_image_data: Arc<RwLock<HashMap<String, Vec<u8>>>> =
+        Arc::new(RwLock::new(HashMap::new()));
+    let conditional_image_data: Arc<RwLock<HashMap<String, HashMap<String, Vec<u8>>>>> =
+        Arc::new(RwLock::new(HashMap::new()));
 
     std::thread::spawn(move || {
         let client = match SensorBridgeClient::new(&server_host, server_port, resolution) {
@@ -255,10 +256,10 @@ pub fn start_http_client(
             match client.register(None) {
                 Ok(registration_result) => {
                     // Store the static data from registration
-                    *fonts_data.lock().ignore_poison() = registration_result.text_data;
-                    *static_image_data.lock().ignore_poison() =
+                    *fonts_data.write().ignore_poison() = registration_result.text_data;
+                    *static_image_data.write().ignore_poison() =
                         registration_result.static_image_data;
-                    *conditional_image_data.lock().ignore_poison() =
+                    *conditional_image_data.write().ignore_poison() =
                         registration_result.conditional_image_data;
 
                     registered = true;
@@ -319,17 +320,17 @@ pub fn start_http_client(
 /// Handle render data received from the server
 fn handle_render_data(
     ui_display_image_handle: &SharedImageHandle,
-    render_busy_indicator: &Arc<Mutex<bool>>,
-    sensor_value_history: &Arc<Mutex<Vec<Vec<SensorValue>>>>,
-    fonts_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
-    static_image_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
-    conditional_image_data: &Arc<Mutex<HashMap<String, HashMap<String, Vec<u8>>>>>,
+    render_busy_indicator: &Arc<RwLock<bool>>,
+    sensor_value_history: &Arc<RwLock<Vec<Vec<SensorValue>>>>,
+    fonts_data: &Arc<RwLock<HashMap<String, Vec<u8>>>>,
+    static_image_data: &Arc<RwLock<HashMap<String, Vec<u8>>>>,
+    conditional_image_data: &Arc<RwLock<HashMap<String, HashMap<String, Vec<u8>>>>>,
     render_data: RenderData,
     image_width: u32,
     image_height: u32,
 ) {
     // If already rendering, skip this frame
-    if *render_busy_indicator.lock().ignore_poison() {
+    if *render_busy_indicator.read().ignore_poison() {
         warn!("Received new sensor data, but rendering is still in progress, skipping frame!");
         return;
     }
@@ -342,16 +343,16 @@ fn handle_render_data(
     let conditional_image_data = conditional_image_data.clone();
 
     prepare_static_data(
-        static_image_data.lock().ignore_poison().clone(),
+        static_image_data.read().ignore_poison().clone(),
         ElementType::StaticImage,
     );
 
-    prepare_conditional_images(conditional_image_data.lock().ignore_poison().clone());
+    prepare_conditional_images(conditional_image_data.read().ignore_poison().clone());
 
     // Spawn blocking task for rendering (since renderer is not async)
     std::thread::spawn(move || {
         // Begin rendering
-        *render_busy_indicator.lock().unwrap() = true;
+        *render_busy_indicator.write().ignore_poison() = true;
 
         // Define render closure, so if something in the render process goes wrong, we can
         // still end the render process and set the render_busy_indicator to false
@@ -373,7 +374,7 @@ fn handle_render_data(
         }
 
         // End rendering
-        *render_busy_indicator.lock().unwrap() = false;
+        *render_busy_indicator.write().ignore_poison() = false;
     });
 }
 

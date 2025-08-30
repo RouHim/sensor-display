@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::ops::Deref;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 use crate::ignore_poison_lock::LockResultExt;
 use crate::SharedImageHandle;
@@ -12,9 +12,9 @@ const MAX_SENSOR_VALUE_HISTORY: usize = 1000;
 
 pub fn render_image(
     ui_display_image_handle: &SharedImageHandle,
-    sensor_value_history: &Arc<Mutex<Vec<Vec<SensorValue>>>>,
+    sensor_value_history: &Arc<RwLock<Vec<Vec<SensorValue>>>>,
     render_data: RenderData,
-    fonts_data: &Arc<Mutex<HashMap<String, Vec<u8>>>>,
+    fonts_data: &Arc<RwLock<HashMap<String, Vec<u8>>>>,
     image_width: u32,
     image_height: u32,
 ) {
@@ -22,7 +22,7 @@ pub fn render_image(
 
     // Insert last sensor values into sensor value history
     let last_sensor_values = render_data.sensor_values;
-    let mut sensor_value_history = sensor_value_history.lock().ignore_poison();
+    let mut sensor_value_history = sensor_value_history.write().ignore_poison();
     sensor_value_history.insert(0, last_sensor_values);
 
     // Limit sensor value history to MAX_SENSOR_VALUE_HISTORY
@@ -39,7 +39,7 @@ pub fn render_image(
     let image_buffer = sensor_core::render_lcd_image(
         &render_data.elements,
         &sensor_value_history,
-        fonts_data.lock().ignore_poison().deref(),
+        fonts_data.read().ignore_poison().deref(),
         image_width,
         image_height,
     );
@@ -64,7 +64,7 @@ pub fn render_image(
         .as_nanos();
 
     // Write image data to ui mutex
-    let mut mutex = ui_display_image_handle.lock().ignore_poison();
+    let mut mutex = ui_display_image_handle.write().ignore_poison();
     *mutex = Some((unix_timestamp_nano, image_data));
 
     info!("Total time: {:?}", lcd_render_time.duration_since(start));

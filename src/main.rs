@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::{env, fs};
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use crate::ignore_poison_lock::LockResultExt;
@@ -18,7 +18,7 @@ mod updater;
 
 type ImageData = Vec<u8>;
 type ImageHandle = Option<(u128, ImageData)>;
-type SharedImageHandle = Arc<Mutex<ImageHandle>>;
+type SharedImageHandle = Arc<RwLock<ImageHandle>>;
 
 fn main() -> Result<(), eframe::Error> {
     // Set the app name for the dynamic cache folder detection
@@ -43,7 +43,7 @@ fn main() -> Result<(), eframe::Error> {
     };
 
     // Create handler for asynchronous image data rendering
-    let image_data_mutex: SharedImageHandle = Arc::new(Mutex::new(None));
+    let image_data_mutex: SharedImageHandle = Arc::new(RwLock::new(None));
 
     // Get server configuration from environment variables or use defaults
     let server_host = env::var("SENSOR_BRIDGE_HOST").unwrap_or_else(|_| "localhost".to_string());
@@ -58,10 +58,10 @@ fn main() -> Result<(), eframe::Error> {
     let hostname = hostname::get().unwrap().into_string().unwrap();
 
     // Holds the ids (timestamps) of the cached images
-    let cached_image_index: Arc<Mutex<Vec<u128>>> = Arc::new(Mutex::new(Vec::new()));
+    let cached_image_index: Arc<RwLock<Vec<u128>>> = Arc::new(RwLock::new(Vec::new()));
 
     // Track if HTTP client has been started
-    let http_client_started = Arc::new(Mutex::new(false));
+    let http_client_started = Arc::new(RwLock::new(false));
 
     // Render loop
     eframe::run_simple_native("Sensor Display", native_options, move |ctx, _frame| {
@@ -72,7 +72,7 @@ fn main() -> Result<(), eframe::Error> {
         );
 
         // Start HTTP client on first frame when we have the screen resolution
-        let mut client_started = http_client_started.lock().ignore_poison();
+        let mut client_started = http_client_started.write().ignore_poison();
         if !*client_started {
             let resolution_tuple = (
                 ctx.screen_rect().width() as u32,
@@ -112,8 +112,8 @@ fn main() -> Result<(), eframe::Error> {
         egui::Area::new("main_area")
             .fixed_pos(egui::pos2(0.0, 0.0))
             .show(ctx, |ui| {
-                let mut image_mutex = image_data_mutex.lock().ignore_poison();
-                let mut cached_image_index = cached_image_index.lock().ignore_poison();
+                let mut image_mutex = image_data_mutex.write().ignore_poison();
+                let mut cached_image_index = cached_image_index.write().ignore_poison();
 
                 // A new image was rendered
                 if let Some(image_data) = image_mutex.deref() {
