@@ -41,7 +41,7 @@ pub fn render_image(
         &sensor_value_history,
         fonts_data.lock().ignore_poison().deref(),
         image_width,
-        image_height
+        image_height,
     );
 
     let lcd_render_time = std::time::Instant::now();

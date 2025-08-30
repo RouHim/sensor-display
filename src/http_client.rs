@@ -65,8 +65,7 @@ pub struct RegisteredClient {
     pub resolution_width: u32,
     pub resolution_height: u32,
     pub active: bool,
-    pub last_seen: u64,
-    elements: Vec<ElementConfig>,
+    pub elements: Vec<ElementConfig>,
 }
 
 /// Sensor data response from server
