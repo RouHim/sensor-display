@@ -14,7 +14,7 @@ use crate::{renderer, SharedImageHandle};
 
 use rayon::prelude::*;
 
-const DEFAULT_SERVER_PORT: u16 = 25555;
+const DEFAULT_SERVER_PORT: u16 = 55555;
 const POLL_INTERVAL_MS: u64 = 1000;
 
 /// Static client data received from registration endpoint
