@@ -1,5 +1,5 @@
-use std::error;
 use std::collections::HashMap;
+use std::error;
 use std::io::Read;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -154,10 +154,8 @@ impl SensorBridgeClient {
                         .unwrap_or("Unknown error");
                     Err(format!("Registration failed: {error_msg}").into())
                 }
-                Err(_) => {
-                    Err(format!("Registration failed with status: {status_code}").into())
-                }
-            }
+                Err(_) => Err(format!("Registration failed with status: {status_code}").into()),
+            };
         }
 
         // Success - process binary static data
