@@ -4,7 +4,6 @@ use std::{env, fs};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-use crate::ignore_poison_lock::LockResultExt;
 use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
 use self_update::cargo_crate_version;
@@ -12,7 +11,7 @@ use self_update::cargo_crate_version;
 use crate::http_client::get_local_ip_address;
 
 mod http_client;
-mod ignore_poison_lock;
+
 mod renderer;
 mod updater;
 
@@ -72,7 +71,7 @@ fn main() -> Result<(), eframe::Error> {
         );
 
         // Start HTTP client on first frame when we have the screen resolution
-        let mut client_started = http_client_started.write().ignore_poison();
+        let mut client_started = http_client_started.write().unwrap();
         if !*client_started {
             let resolution_tuple = (
                 ctx.screen_rect().width() as u32,
@@ -112,8 +111,8 @@ fn main() -> Result<(), eframe::Error> {
         egui::Area::new("main_area")
             .fixed_pos(egui::pos2(0.0, 0.0))
             .show(ctx, |ui| {
-                let mut image_mutex = image_data_mutex.write().ignore_poison();
-                let mut cached_image_index = cached_image_index.write().ignore_poison();
+                let mut image_mutex = image_data_mutex.write().unwrap();
+                let mut cached_image_index = cached_image_index.write().unwrap();
 
                 // A new image was rendered
                 if let Some(image_data) = image_mutex.deref() {

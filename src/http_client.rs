@@ -10,7 +10,6 @@ use mac_address::get_mac_address;
 use sensor_core::{ElementConfig, ElementType, RenderData, SensorValue};
 use serde::{Deserialize, Serialize};
 
-use crate::ignore_poison_lock::LockResultExt;
 use crate::{renderer, SharedImageHandle};
 
 use rayon::prelude::*;
@@ -93,6 +92,7 @@ impl SensorBridgeClient {
         resolution: (u32, u32),
     ) -> Result<Self, Box<dyn error::Error + Send + Sync>> {
         let port = server_port.unwrap_or(DEFAULT_SERVER_PORT);
+        #[allow(clippy::insecure_network_protocol)]
         let server_url = format!("http://{server_host}:{port}");
 
         let mac_address = get_mac_address()?
@@ -255,10 +255,9 @@ pub fn start_http_client(
             match client.register(None) {
                 Ok(registration_result) => {
                     // Store the static data from registration
-                    *fonts_data.write().ignore_poison() = registration_result.text_data;
-                    *static_image_data.write().ignore_poison() =
-                        registration_result.static_image_data;
-                    *conditional_image_data.write().ignore_poison() =
+                    *fonts_data.write().unwrap() = registration_result.text_data;
+                    *static_image_data.write().unwrap() = registration_result.static_image_data;
+                    *conditional_image_data.write().unwrap() =
                         registration_result.conditional_image_data;
 
                     registered = true;
@@ -329,7 +328,7 @@ fn handle_render_data(
     image_height: u32,
 ) {
     // If already rendering, skip this frame
-    if *render_busy_indicator.read().ignore_poison() {
+    if *render_busy_indicator.read().unwrap() {
         warn!("Received new sensor data, but rendering is still in progress, skipping frame!");
         return;
     }
@@ -342,16 +341,16 @@ fn handle_render_data(
     let conditional_image_data = conditional_image_data.clone();
 
     prepare_static_data(
-        static_image_data.read().ignore_poison().clone(),
+        static_image_data.read().unwrap().clone(),
         ElementType::StaticImage,
     );
 
-    prepare_conditional_images(conditional_image_data.read().ignore_poison().clone());
+    prepare_conditional_images(conditional_image_data.read().unwrap().clone());
 
     // Spawn blocking task for rendering (since renderer is not async)
     std::thread::spawn(move || {
         // Begin rendering
-        *render_busy_indicator.write().ignore_poison() = true;
+        *render_busy_indicator.write().unwrap() = true;
 
         // Define render closure, so if something in the render process goes wrong, we can
         // still end the render process and set the render_busy_indicator to false
@@ -373,7 +372,7 @@ fn handle_render_data(
         }
 
         // End rendering
-        *render_busy_indicator.write().ignore_poison() = false;
+        *render_busy_indicator.write().unwrap() = false;
     });
 }
 
