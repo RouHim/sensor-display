@@ -22,7 +22,7 @@ type SharedImageHandle = Arc<RwLock<ImageHandle>>;
 
 fn main() -> Result<(), eframe::Error> {
     // Set the app name for the dynamic cache folder detection
-    std::env::set_var("SENSOR_BRIDGE_APP_NAME", "sensor-display");
+    env::set_var("SENSOR_BRIDGE_APP_NAME", "sensor-display");
 
     // Initialize the logger
     env_logger::init();

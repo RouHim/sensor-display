@@ -42,7 +42,7 @@ pub fn update() {
 fn restart_process(current_exe: PathBuf) {
     info!("Waiting 5s before restarting {current_exe:?} ...");
     thread::sleep(Duration::from_secs(5));
-    let err = exec(process::Command::new(current_exe).args(std::env::args().skip(1)));
+    let err = exec(process::Command::new(current_exe).args(env::args().skip(1)));
     panic!("Failed to restart: {err}");
 }
 

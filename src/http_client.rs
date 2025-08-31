@@ -1,3 +1,4 @@
+use std::error;
 use std::collections::HashMap;
 use std::io::Read;
 use std::sync::{Arc, RwLock};
@@ -90,7 +91,7 @@ impl SensorBridgeClient {
         server_host: &str,
         server_port: Option<u16>,
         resolution: (u32, u32),
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Self, Box<dyn error::Error + Send + Sync>> {
         let port = server_port.unwrap_or(DEFAULT_SERVER_PORT);
         let server_url = format!("http://{server_host}:{port}");
 
@@ -123,7 +124,7 @@ impl SensorBridgeClient {
     pub fn register(
         &self,
         name: Option<String>,
-    ) -> Result<RegistrationResult, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<RegistrationResult, Box<dyn error::Error + Send + Sync>> {
         let registration_data = ClientRegistration {
             mac_address: self.mac_address.clone(),
             ip_address: self.ip_address.clone(),
@@ -144,17 +145,17 @@ impl SensorBridgeClient {
         if status_code >= 400 {
             // Try to parse error response as JSON
             let error_result: Result<serde_json::Value, _> = response.into_json();
-            match error_result {
+            return match error_result {
                 Ok(error_data) => {
                     let error_msg = error_data
                         .get("error")
                         .or_else(|| error_data.get("message"))
                         .and_then(|v| v.as_str())
                         .unwrap_or("Unknown error");
-                    return Err(format!("Registration failed: {error_msg}").into());
+                    Err(format!("Registration failed: {error_msg}").into())
                 }
                 Err(_) => {
-                    return Err(format!("Registration failed with status: {status_code}").into());
+                    Err(format!("Registration failed with status: {status_code}").into())
                 }
             }
         }
@@ -178,7 +179,7 @@ impl SensorBridgeClient {
     fn process_static_preparation_data(
         &self,
         binary_data: &[u8],
-    ) -> Result<RegistrationResult, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<RegistrationResult, Box<dyn error::Error + Send + Sync>> {
         // Deserialize the single StaticClientData struct from binary data
         let static_data: StaticClientData = bincode::deserialize(binary_data)?;
 
@@ -202,7 +203,7 @@ impl SensorBridgeClient {
     /// Get sensor data from the server
     pub fn get_sensor_data(
         &self,
-    ) -> Result<SensorDataResponse, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<SensorDataResponse, Box<dyn error::Error + Send + Sync>> {
         let url = format!(
             "{}/api/sensor-data?mac_address={}",
             self.server_url, self.mac_address
@@ -356,7 +357,7 @@ fn handle_render_data(
 
         // Define render closure, so if something in the render process goes wrong, we can
         // still end the render process and set the render_busy_indicator to false
-        let do_render = || -> Result<(), Box<dyn std::error::Error>> {
+        let do_render = || -> Result<(), Box<dyn error::Error>> {
             renderer::render_image(
                 &ui_display_image_handle,
                 &sensor_value_history,
