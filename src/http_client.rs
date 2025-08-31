@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::error;
 use std::io::Read;
 use std::sync::{Arc, RwLock};
@@ -7,72 +6,29 @@ use std::time::Duration;
 use local_ip_address::local_ip;
 use log::{error, info, warn};
 use mac_address::get_mac_address;
-use sensor_core::{ElementConfig, ElementType, RenderData, SensorValue};
+use sensor_core::{RenderData, SensorValue, StaticClientData};
 use serde::{Deserialize, Serialize};
 
-use crate::{renderer, SharedImageHandle};
-
-use rayon::prelude::*;
+use crate::{renderer, static_data, ui::SharedImageHandle};
 
 const DEFAULT_SERVER_PORT: u16 = 55555;
 const POLL_INTERVAL_MS: u64 = 1000;
 
-/// Static client data received from registration endpoint
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct StaticClientData {
-    /// Font data: font family name -> font bytes
-    pub text_data: HashMap<String, Vec<u8>>,
-    /// Static images: element ID -> PNG image bytes
-    pub static_image_data: HashMap<String, Vec<u8>>,
-    /// Conditional images: element ID -> (image name -> PNG image bytes)
-    pub conditional_image_data: HashMap<String, HashMap<String, Vec<u8>>>,
-}
-
-/// Registration result containing processed preparation data
-#[derive(Debug)]
-pub struct RegistrationResult {
-    pub success: bool,
-    pub message: String,
-    pub text_data: HashMap<String, Vec<u8>>,
-    pub static_image_data: HashMap<String, Vec<u8>>,
-    pub conditional_image_data: HashMap<String, HashMap<String, Vec<u8>>>,
-}
-
 /// Client registration request payload
 #[derive(Serialize, Debug)]
-pub struct ClientRegistration {
+pub struct ClientRegistrationRequestData {
     pub mac_address: String,
     pub ip_address: String,
-    pub resolution_width: u32,
-    pub resolution_height: u32,
+    pub resolution_width: u16,
+    pub resolution_height: u16,
     pub name: Option<String>,
-}
-
-/// Client registration response
-#[derive(Deserialize, Debug)]
-pub struct RegistrationResponse {
-    pub success: bool,
-    pub message: String,
-    pub client: Option<RegisteredClient>,
-}
-
-/// Registered client information
-#[derive(Deserialize, Debug)]
-pub struct RegisteredClient {
-    pub mac_address: String,
-    pub name: String,
-    pub ip_address: String,
-    pub resolution_width: u32,
-    pub resolution_height: u32,
-    pub active: bool,
-    pub elements: Vec<ElementConfig>,
 }
 
 /// Sensor data response from server
 #[derive(Deserialize, Debug)]
 pub struct SensorDataResponse {
     pub render_data: RenderData,
-    pub timestamp: u64,
+    pub static_data_reload_required: bool,
 }
 
 /// HTTP client for communicating with sensor bridge server
@@ -81,15 +37,15 @@ pub struct SensorBridgeClient {
     server_url: String,
     mac_address: String,
     ip_address: String,
-    resolution_width: u32,
-    resolution_height: u32,
+    resolution_width: u16,
+    resolution_height: u16,
 }
 
 impl SensorBridgeClient {
     pub fn new(
         server_host: &str,
         server_port: Option<u16>,
-        resolution: (u32, u32),
+        resolution: (u16, u16),
     ) -> Result<Self, Box<dyn error::Error + Send + Sync>> {
         let port = server_port.unwrap_or(DEFAULT_SERVER_PORT);
         #[allow(clippy::insecure_network_protocol)]
@@ -121,16 +77,13 @@ impl SensorBridgeClient {
     }
 
     /// Register with the sensor bridge server
-    pub fn register(
-        &self,
-        name: Option<String>,
-    ) -> Result<RegistrationResult, Box<dyn error::Error + Send + Sync>> {
-        let registration_data = ClientRegistration {
+    pub fn register(&self) -> Result<(), Box<dyn error::Error + Send + Sync>> {
+        let registration_data = ClientRegistrationRequestData {
             mac_address: self.mac_address.clone(),
             ip_address: self.ip_address.clone(),
             resolution_width: self.resolution_width,
             resolution_height: self.resolution_height,
-            name,
+            name: None,
         };
 
         info!("Registering client with MAC: {}", self.mac_address);
@@ -158,43 +111,83 @@ impl SensorBridgeClient {
             };
         }
 
+        // Success - parse JSON response
+        let result: serde_json::Value = response.into_json()?;
+
+        if result["success"] == true {
+            info!("Registration successful");
+            Ok(())
+        } else {
+            Err("Registration failed".into())
+        }
+    }
+
+    /// Get static data from the server
+    pub fn get_static_data(
+        &self,
+    ) -> Result<static_data::StaticDataResult, Box<dyn error::Error + Send + Sync>> {
+        let url = format!(
+            "{}/api/static-data?mac_address={}",
+            self.server_url, self.mac_address
+        );
+
+        let response = self.agent.get(&url).call()?;
+
+        // Check if response indicates an error (4xx, 5xx status codes)
+        let status_code = response.status();
+        if status_code >= 400 {
+            // Try to parse error response as JSON
+            let error_result: Result<serde_json::Value, _> = response.into_json();
+            return match error_result {
+                Ok(error_data) => {
+                    let error_msg = error_data
+                        .get("error")
+                        .or_else(|| error_data.get("message"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Unknown error");
+                    Err(format!("Failed to get static data: {error_msg}").into())
+                }
+                Err(_) => {
+                    Err(format!("Failed to get static data with status: {status_code}").into())
+                }
+            };
+        }
+
         // Success - process binary static data
         let mut binary_data = Vec::new();
         response.into_reader().read_to_end(&mut binary_data)?;
 
-        info!(
-            "Registration successful, received {} bytes of static data",
-            binary_data.len()
-        );
+        info!("Static data received, {} bytes", binary_data.len());
 
         // Process the binary data containing StaticClientData struct
-        let result = self.process_static_preparation_data(&binary_data)?;
+        let result = self.process_static_data(&binary_data)?;
 
         Ok(result)
     }
 
-    /// Process static preparation data from binary response
-    fn process_static_preparation_data(
+    /// Process static data from binary response
+    fn process_static_data(
         &self,
         binary_data: &[u8],
-    ) -> Result<RegistrationResult, Box<dyn error::Error + Send + Sync>> {
+    ) -> Result<static_data::StaticDataResult, Box<dyn error::Error + Send + Sync>> {
         // Deserialize the single StaticClientData struct from binary data
-        let static_data: StaticClientData = bincode::deserialize(binary_data)?;
+        let static_client_data: StaticClientData = bincode::deserialize(binary_data)?;
 
         info!("Processing static client data:");
-        info!("  - {} font families", static_data.text_data.len());
-        info!("  - {} static images", static_data.static_image_data.len());
+        info!("  - {} font families", static_client_data.text_data.len());
+        info!(
+            "  - {} static images",
+            static_client_data.static_image_data.len()
+        );
         info!(
             "  - {} conditional image elements",
-            static_data.conditional_image_data.len()
+            static_client_data.conditional_image_data.len()
         );
 
-        Ok(RegistrationResult {
-            success: true,
-            message: "Client registered successfully with static data".to_string(),
-            text_data: static_data.text_data,
-            static_image_data: static_data.static_image_data,
-            conditional_image_data: static_data.conditional_image_data,
+        Ok(static_data::StaticDataResult {
+            text_data: static_client_data.text_data,
+            static_image_data: static_client_data.static_image_data,
+            conditional_image_data: static_client_data.conditional_image_data,
         })
     }
 
@@ -227,18 +220,14 @@ impl SensorBridgeClient {
 /// Start HTTP client and begin polling for sensor data
 pub fn start_http_client(
     ui_display_image_handle: SharedImageHandle,
+    font_cache: Arc<RwLock<lru::LruCache<String, rusttype::Font<'static>>>>,
     server_host: String,
     server_port: Option<u16>,
-    resolution: (u32, u32),
+    resolution: (u16, u16),
 ) {
     let render_busy_indicator = Arc::new(RwLock::new(false));
     let sensor_value_history: Arc<RwLock<Vec<Vec<SensorValue>>>> =
         Arc::new(RwLock::new(Vec::new()));
-    let fonts_data: Arc<RwLock<HashMap<String, Vec<u8>>>> = Arc::new(RwLock::new(HashMap::new()));
-    let static_image_data: Arc<RwLock<HashMap<String, Vec<u8>>>> =
-        Arc::new(RwLock::new(HashMap::new()));
-    let conditional_image_data: Arc<RwLock<HashMap<String, HashMap<String, Vec<u8>>>>> =
-        Arc::new(RwLock::new(HashMap::new()));
 
     std::thread::spawn(move || {
         let client = match SensorBridgeClient::new(&server_host, server_port, resolution) {
@@ -249,19 +238,36 @@ pub fn start_http_client(
             }
         };
 
-        // Initial registration
-        let mut registered = false;
-        while !registered {
-            match client.register(None) {
-                Ok(registration_result) => {
-                    // Store the static data from registration
-                    *fonts_data.write().unwrap() = registration_result.text_data;
-                    *static_image_data.write().unwrap() = registration_result.static_image_data;
-                    *conditional_image_data.write().unwrap() =
-                        registration_result.conditional_image_data;
+        // Initial registration and static data loading
+        let mut has_static_data = false;
+        while !has_static_data {
+            // First, register with the server
+            match client.register() {
+                Ok(()) => {
+                    info!("Registration successful, now getting initial static data");
 
-                    registered = true;
-                    info!("Successfully registered with server and loaded static data");
+                    // Then get initial static data
+                    match client.get_static_data() {
+                        Ok(static_data_result) => {
+                            // Persist static data to disk
+                            if let Err(e) =
+                                static_data::persist_static_data_to_disk(&static_data_result)
+                            {
+                                error!("Failed to persist initial static data: {}", e);
+                                std::thread::sleep(Duration::from_secs(5));
+                                continue;
+                            }
+
+                            has_static_data = true;
+                            info!("Successfully registered with server and loaded initial static data");
+                        }
+                        Err(e) => {
+                            error!(
+                                "Failed to get initial static data: {e}. Retrying in 5 seconds..."
+                            );
+                            std::thread::sleep(Duration::from_secs(5));
+                        }
+                    }
                 }
                 Err(e) => {
                     error!("Registration failed: {e}. Retrying in 5 seconds...");
@@ -282,14 +288,31 @@ pub fn start_http_client(
                         response.render_data.sensor_values.len()
                     );
 
-                    // Process the render data with static data
+                    // Check if static data reload is required
+                    if response.static_data_reload_required {
+                        info!("Static data reload required, fetching updated static data");
+                        match client.get_static_data() {
+                            Ok(static_data_result) => {
+                                if let Err(e) =
+                                    static_data::persist_static_data_to_disk(&static_data_result)
+                                {
+                                    error!("Failed to persist updated static data: {}", e);
+                                } else {
+                                    info!("Static data reloaded successfully due to configuration change");
+                                }
+                            }
+                            Err(e) => {
+                                error!("Failed to reload static data: {}", e);
+                            }
+                        }
+                    }
+
+                    // Process the render data
                     handle_render_data(
                         &ui_display_image_handle,
                         &render_busy_indicator,
                         &sensor_value_history,
-                        &fonts_data,
-                        &static_image_data,
-                        &conditional_image_data,
+                        &font_cache,
                         response.render_data,
                         client.resolution_width,
                         client.resolution_height,
@@ -301,7 +324,7 @@ pub fn start_http_client(
                         warn!("Client is not active. Please activate in the server UI.");
                     } else if error_msg.contains("not registered") {
                         warn!("Client not registered. Re-registering...");
-                        if let Err(reg_err) = client.register(None) {
+                        if let Err(reg_err) = client.register() {
                             error!("Re-registration failed: {reg_err}");
                         }
                     } else {
@@ -315,17 +338,15 @@ pub fn start_http_client(
     });
 }
 
-/// Handle render data received from the server
+/// Handle render data received from the server - now uses filesystem cache
 fn handle_render_data(
     ui_display_image_handle: &SharedImageHandle,
     render_busy_indicator: &Arc<RwLock<bool>>,
     sensor_value_history: &Arc<RwLock<Vec<Vec<SensorValue>>>>,
-    fonts_data: &Arc<RwLock<HashMap<String, Vec<u8>>>>,
-    static_image_data: &Arc<RwLock<HashMap<String, Vec<u8>>>>,
-    conditional_image_data: &Arc<RwLock<HashMap<String, HashMap<String, Vec<u8>>>>>,
+    font_cache: &Arc<RwLock<lru::LruCache<String, rusttype::Font<'static>>>>,
     render_data: RenderData,
-    image_width: u32,
-    image_height: u32,
+    image_width: u16,
+    image_height: u16,
 ) {
     // If already rendering, skip this frame
     if *render_busy_indicator.read().unwrap() {
@@ -336,30 +357,20 @@ fn handle_render_data(
     let render_busy_indicator = render_busy_indicator.clone();
     let ui_display_image_handle = ui_display_image_handle.clone();
     let sensor_value_history = sensor_value_history.clone();
-    let fonts_data = fonts_data.clone();
-    let static_image_data = static_image_data.clone();
-    let conditional_image_data = conditional_image_data.clone();
-
-    prepare_static_data(
-        static_image_data.read().unwrap().clone(),
-        ElementType::StaticImage,
-    );
-
-    prepare_conditional_images(conditional_image_data.read().unwrap().clone());
+    let font_cache = Arc::clone(font_cache);
 
     // Spawn blocking task for rendering (since renderer is not async)
     std::thread::spawn(move || {
         // Begin rendering
         *render_busy_indicator.write().unwrap() = true;
 
-        // Define render closure, so if something in the render process goes wrong, we can
-        // still end the render process and set the render_busy_indicator to false
+        // Define render closure
         let do_render = || -> Result<(), Box<dyn error::Error>> {
             renderer::render_image(
                 &ui_display_image_handle,
                 &sensor_value_history,
+                &font_cache,
                 render_data,
-                &fonts_data,
                 image_width,
                 image_height,
             );
@@ -382,44 +393,4 @@ pub fn get_local_ip_address() -> Vec<String> {
         Ok(ip) => vec![ip.to_string()],
         Err(_) => vec!["127.0.0.1".to_string()],
     }
-}
-
-/// Prepare static data for rendering on the local filesystem.
-/// This is done by storing each asset with its element id in the data folder on the filesystem
-/// /// # Parameters
-// /// * `assets` - A hashmap containing the data for each element
-fn prepare_static_data(assets: HashMap<String, Vec<u8>>, element_type: ElementType) {
-    // Ensure data folder exists and is empty
-    assets.par_iter().for_each(|(element_id, asset_data)| {
-        let element_cache_dir = sensor_core::get_cache_dir(element_id, &element_type);
-        let file_path = element_cache_dir.join(element_id);
-
-        // Ensure cache dir exists and is empty
-        std::fs::remove_dir_all(&element_cache_dir).unwrap_or_default();
-        std::fs::create_dir_all(&element_cache_dir).unwrap();
-
-        std::fs::write(file_path, asset_data).unwrap();
-    });
-}
-
-/// Prepare conditional images for rendering.
-/// This is done by storing each asset with its element id in the data folder on the filesystem
-/// # Parameters
-/// * `assets` - A hashmap containing the image data for each conditional image element
-fn prepare_conditional_images(assets: HashMap<String, HashMap<String, Vec<u8>>>) {
-    assets.par_iter().for_each(|element| {
-        let element_id = element.0;
-        let element_cache_dir =
-            sensor_core::get_cache_dir(element_id, &ElementType::ConditionalImage);
-
-        // Ensure cache dir exists and is empty
-        std::fs::remove_dir_all(&element_cache_dir).unwrap_or_default();
-        std::fs::create_dir_all(&element_cache_dir).unwrap();
-
-        element.1.par_iter().for_each(|asset| {
-            let file_path = element_cache_dir.join(asset.0);
-            let file_data = asset.1;
-            std::fs::write(file_path, file_data).unwrap();
-        })
-    })
 }

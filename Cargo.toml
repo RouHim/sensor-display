@@ -20,6 +20,11 @@ env_logger = "0.11.2"                                                           
 local-ip-address = "0.6.1"                                                              # Local IP address
 hostname = "0.3.1"                                                                      # Hostname
 self_update = { version = "0.39.0", features = ["rustls"], default-features = false }   # Self update
+md5 = "0.7.0"                                                                           # MD5 hashing for cache validation
+lru = "0.12.1"                                                                          # LRU cache for renderer assets
+walkdir = "2.5.0"                                                                       # Directory traversal for cache cleanup
+rusttype = "0.9.3"                                                                      # Font rendering
+atomic-write-file = "0.2.3"                                                             # Atomic file operations for reliability
 
 [profile.release]
 panic = "abort" # Strip expensive panic clean-up logic
