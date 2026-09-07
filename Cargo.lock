@@ -3758,6 +3758,7 @@ dependencies = [
  "self_update",
  "sensor-core",
  "serde",
+ "winapi",
 ]
 
 [[package]]
