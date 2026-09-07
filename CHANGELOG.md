@@ -1,3 +1,12 @@
+## [1.20.9](https://github.com/RouHim/sensor-display/compare/1.20.8...1.20.9) (2026-09-07)
+
+
+### Bug Fixes
+
+* **ci:** update runners from ubuntu-20.04 to ubuntu-22.04 ([f0d5b51](https://github.com/RouHim/sensor-display/commit/f0d5b517f93b2a0e52efdc8005835992439ab02f))
+* enable winapi winuser/windef for windows cross-compile ([7a89db1](https://github.com/RouHim/sensor-display/commit/7a89db15573b06efd5b886155463782c5d8ff614))
+* update self_update to 0.44.0 with reqwest backend ([2143f67](https://github.com/RouHim/sensor-display/commit/2143f67aacfcac4385c82aadf829ba35cfabc563))
+
 ## [1.20.8](https://github.com/RouHim/sensor-display/compare/1.20.7...1.20.8) (2024-03-03)
 
 ## [1.20.7](https://github.com/RouHim/sensor-display/compare/1.20.6...1.20.7) (2024-03-03)
