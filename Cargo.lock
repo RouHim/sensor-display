@@ -1113,7 +1113,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3303,7 +3303,7 @@ dependencies = [
  "once_cell",
  "socket2 0.5.10",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3694,7 +3694,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3852,9 +3852,9 @@ checksum = "56e6fa9c48d24d85fb3de5ad847117517440f6beceb7798af16b4a87d616b8d0"
 
 [[package]]
 name = "sensor-core"
-version = "1.12.32"
+version = "1.12.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcbc49b54376887afca6e8e2c163cdc2b7205eef2c4a1e2e2127209a246931b0"
+checksum = "ad1a2d43065be6eb47219a27cdd49dfa870f5b7ef8b9c7a865984e94f457dc16"
 dependencies = [
  "dirs",
  "image",
