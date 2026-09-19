@@ -13,6 +13,8 @@ use crate::http_client::get_local_ip_address;
 pub type ImageData = Vec<u8>;
 pub type ImageHandle = Option<(u128, ImageData)>;
 pub type SharedImageHandle = Arc<RwLock<ImageHandle>>;
+/// Optional status message shown instead of the rendered frame (e.g. update required).
+pub type SharedStatus = Arc<RwLock<Option<String>>>;
 
 /// LRU cache for renderer assets to reduce disk I/O
 const FONT_CACHE_SIZE: usize = 3;
@@ -42,6 +44,9 @@ pub fn run_ui(server_host: String, server_port: Option<u16>) -> Result<(), efram
 
     // Create handler for asynchronous image data rendering
     let image_data_mutex: SharedImageHandle = Arc::new(RwLock::new(None));
+
+    // Status text shown instead of the rendered frame (e.g. update required)
+    let client_status: SharedStatus = Arc::new(RwLock::new(None));
 
     // Create LRU cache for renderer assets
     let font_cache: Arc<RwLock<FontCache>> = Arc::new(RwLock::new(LruCache::new(
@@ -75,6 +80,7 @@ pub fn run_ui(server_host: String, server_port: Option<u16>) -> Result<(), efram
 
             crate::http_client::start_http_client(
                 write_image_data_mutex.clone(),
+                client_status.clone(),
                 font_cache.clone(),
                 server_host.clone(),
                 server_port,
@@ -101,6 +107,12 @@ pub fn run_ui(server_host: String, server_port: Option<u16>) -> Result<(), efram
         egui::Area::new(egui::Id::new("main_area"))
             .fixed_pos(egui::pos2(0.0, 0.0))
             .show(&ctx, |ui| {
+                // A status (e.g. update required) takes precedence over the last frame
+                if let Some(status) = client_status.read().unwrap().clone() {
+                    ui.label(status);
+                    return;
+                }
+
                 let mut image_mutex = image_data_mutex.write().unwrap();
                 let mut cached_image_index = cached_image_index.write().unwrap();
 

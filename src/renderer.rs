@@ -6,7 +6,7 @@ use crate::ui::SharedImageHandle;
 use ab_glyph::FontVec;
 use log::{info, warn};
 use lru::LruCache;
-use sensor_core::{RenderData, SensorValue};
+use sensor_core::{RenderData, SensorValueHistory};
 
 const MAX_SENSOR_VALUE_HISTORY: usize = 1000;
 
@@ -78,7 +78,7 @@ fn load_fonts_for_rendering(
 
 pub fn render_image(
     ui_display_image_handle: &SharedImageHandle,
-    sensor_value_history: &Arc<RwLock<Vec<Vec<SensorValue>>>>,
+    sensor_value_history: &Arc<RwLock<SensorValueHistory>>,
     font_cache: &Arc<RwLock<LruCache<String, FontVec>>>,
     render_data: RenderData,
     image_width: u16,
@@ -86,14 +86,14 @@ pub fn render_image(
 ) {
     let start = std::time::Instant::now();
 
-    // Insert last sensor values into sensor value history
+    // Insert last sensor values into sensor value history (newest first)
     let last_sensor_values = render_data.sensor_values;
     let mut sensor_value_history = sensor_value_history.write().unwrap();
-    sensor_value_history.insert(0, last_sensor_values);
+    sensor_value_history.push_front(last_sensor_values);
 
     // Limit sensor value history to MAX_SENSOR_VALUE_HISTORY
     while sensor_value_history.len() > MAX_SENSOR_VALUE_HISTORY {
-        sensor_value_history.pop();
+        sensor_value_history.pop_back();
     }
 
     let history_read_time = std::time::Instant::now();
