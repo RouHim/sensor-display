@@ -307,6 +307,32 @@ impl SensorBridgeClient {
     }
 }
 
+/// Fixed 1 Hz grid the polling loop walks along.
+///
+/// The deadline only ever advances by exactly `POLL_INTERVAL`, so request latency
+/// and re-registrations can never accumulate drift. Re-basing it on the time a
+/// poll finished (`Instant::now()` inside the loop) would defeat that; this unit
+/// exists so the scheduling decision is exercised by tests instead of duplicated
+/// in them.
+struct PollSchedule {
+    deadline: Instant,
+}
+
+impl PollSchedule {
+    /// Anchors the grid at `now`.
+    fn new(now: Instant) -> Self {
+        Self { deadline: now }
+    }
+
+    /// Advances to the next grid slot and returns how long to wait for it, given
+    /// that the previous poll finished at `now`. Saturates to zero when the slot
+    /// has already passed.
+    fn wait_before_next_poll(&mut self, now: Instant) -> Duration {
+        self.deadline += POLL_INTERVAL;
+        self.deadline.saturating_duration_since(now)
+    }
+}
+
 /// Starts the HTTP client thread.
 pub fn start_http_client(
     ui_display_image_handle: SharedImageHandle,
@@ -330,7 +356,7 @@ pub fn start_http_client(
         };
 
         let mut state = ClientState::Bootstrap;
-        let mut poll_deadline: Option<Instant> = None;
+        let mut poll_schedule: Option<PollSchedule> = None;
         let mut last_protocol_check: Option<Instant> = None;
 
         loop {
@@ -338,7 +364,7 @@ pub fn start_http_client(
                 ClientState::Bootstrap => match bootstrap(&client) {
                     Ok(()) => {
                         state = ClientState::Active;
-                        poll_deadline = Some(Instant::now());
+                        poll_schedule = Some(PollSchedule::new(Instant::now()));
                         last_protocol_check = Some(Instant::now());
                         info!("Starting sensor data polling loop");
                         info!("Note: Client must be activated in the server UI to receive data");
@@ -353,9 +379,11 @@ pub fn start_http_client(
                     }
                 },
                 ClientState::Active => {
-                    // Fixed grid: the deadline advances by exactly one interval, so
-                    // request latency and re-registrations never accumulate drift.
-                    let deadline = poll_deadline.get_or_insert_with(Instant::now);
+                    // The schedule is kept across polls (and across re-registrations,
+                    // which happen inside `poll_once`), so only one interval is ever
+                    // waited per poll, no matter how long the poll itself took.
+                    let schedule =
+                        poll_schedule.get_or_insert_with(|| PollSchedule::new(Instant::now()));
 
                     let next_state = poll_once(
                         &client,
@@ -369,10 +397,10 @@ pub fn start_http_client(
 
                     if let Some(next_state) = next_state {
                         state = next_state;
-                        poll_deadline = None;
+                        poll_schedule = None;
                     } else {
-                        *deadline += POLL_INTERVAL;
-                        sensor_core::sleep_until(*deadline);
+                        let sleep = schedule.wait_before_next_poll(Instant::now());
+                        std::thread::sleep(sleep);
                     }
                 }
                 ClientState::UpdateRequired => {
@@ -591,20 +619,22 @@ mod tests {
 
     #[test]
     fn slow_requests_do_not_shift_the_poll_schedule() {
-        // Mirrors the poll loop arithmetic: deadline += interval, then sleep until
-        // the deadline (saturating). Request latency must never accumulate.
+        // Drives the production scheduling unit: a 300 ms request per cycle must
+        // still wait 700 ms for every following poll, and the grid must stay
+        // anchored at `start` (re-basing on completion time would fail here).
         let start = Instant::now();
-        let mut deadline = start;
+        let mut schedule = PollSchedule::new(start);
         let mut simulated_now = start;
 
         for _ in 0..10 {
             simulated_now += Duration::from_millis(300); // request latency
-            deadline += POLL_INTERVAL;
-            let sleep = deadline.saturating_duration_since(simulated_now);
+            let sleep = schedule.wait_before_next_poll(simulated_now);
             assert_eq!(sleep, Duration::from_millis(700));
             simulated_now += sleep;
         }
 
+        // Ten polls on a 1 s grid: the schedule never re-anchored, so the
+        // simulated clock sits exactly on the tenth grid slot.
         assert_eq!(simulated_now - start, POLL_INTERVAL * 10);
     }
 
