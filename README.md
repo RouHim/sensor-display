@@ -38,22 +38,28 @@ displayed based on the configuration defined in the Sensor Bridge UI.
 
 The communication between Sensor Bridge and Sensor Display uses HTTP:
 
-1. **Client Registration**: Sensor Display registers itself with the Sensor Bridge server by sending its MAC address, IP address, and display resolution
-2. **Activation**: The client must be activated through the Sensor Bridge UI before it can receive data
-3. **Data Polling**: Sensor Display polls the server every second for new sensor data and display configurations
-4. **Real-time Rendering**: Received data is rendered immediately on the display
+1. **Client Registration**: Sensor Display registers itself with the Sensor Bridge server by sending its MAC address, IP address, and display resolution. The bridge answers with its protocol version.
+2. **Activation**: The client must be activated through the Sensor Bridge UI before it can receive data.
+3. **Static Data**: The client downloads its static assets, persists them, and confirms the delivery via `POST /api/static-data/ack` with the revision identifier from the `X-Static-Data-Revision` response header. Only then does the bridge clear the reload flag.
+4. **Data Polling**: Sensor Display polls the server every second on a fixed schedule (request latency does not shift the cadence). The bridge samples its sensors once per second and serves every client from the latest sample.
+5. **Real-time Rendering**: Received data is rendered immediately on the display.
+
+**Protocol version:** the bridge and display exchange a protocol version (`sensor_core::PROTOCOL_VERSION`) in the
+registration response, the `X-Protocol-Version` header of static-data responses, and `/health`. On a mismatch - or when
+the bridge does not report a version at all - the display shows an "update required" message, does not decode any
+payloads, and re-checks the bridge at most once per minute. It resumes automatically as soon as the versions match.
 
 ## Configuration
 
 Sensor Display can be configured using environment variables:
 
 - `SENSOR_BRIDGE_HOST`: The hostname or IP address of the Sensor Bridge server (default: `localhost`)
-- `SENSOR_BRIDGE_PORT`: The port of the Sensor Bridge server (default: `8080`)
+- `SENSOR_BRIDGE_PORT`: The port of the Sensor Bridge server (default: `55555`)
 
 Example:
 ```bash
 export SENSOR_BRIDGE_HOST=192.168.1.100
-export SENSOR_BRIDGE_PORT=8080
+export SENSOR_BRIDGE_PORT=55555
 ./sensor-display
 ```
 
@@ -80,7 +86,7 @@ export SENSOR_BRIDGE_PORT=8080
 3. Set the server configuration (optional):
    ```bash
    export SENSOR_BRIDGE_HOST=your-server-ip
-   export SENSOR_BRIDGE_PORT=8080
+   export SENSOR_BRIDGE_PORT=55555
    ```
 
 4. Run the application:
@@ -133,6 +139,6 @@ export RUST_LOG=debug
 
 ## Network Requirements
 
-- HTTP communication on port 8080 (or configured port)
+- HTTP communication on port 55555 (or configured port)
 - The Sensor Display device must be able to reach the Sensor Bridge server
 - No incoming connections required on the Sensor Display device
