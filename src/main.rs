@@ -2,6 +2,7 @@ use std::{env, fs};
 
 mod http_client;
 mod renderer;
+mod serialization;
 mod static_data;
 mod ui;
 mod updater;

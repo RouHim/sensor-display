@@ -7,25 +7,25 @@ rust-version = "1.95"
 [dependencies]
 #sensor-core = "1.12.5"                                                                                      # Sensor core library
 sensor-core = { path = "../sensor-core" }                                                                # Sensor core
-serde = { version = "1.0.197", features = ["derive"] }                                  # De/Serialization
-serde_json = "1.0"                                                                      # JSON De/Serialization
-bincode = "1.3"                                                                         # Binary serialization for TransportMessage
-ureq = { version = "2.9", features = ["json"] }                                         # HTTP client (sync)
-rayon = "1.9.0"                                                                         # Parallelization
-mac_address = "1.1"                                                                     # MAC address detection
+serde = { version = "1.0.229", features = ["derive"] }                                  # De/Serialization
+serde_json = "1.0.151"                                                                  # JSON De/Serialization
+bincode-next = { version = "3.1.1", features = ["serde"] }                              # Static data transport
+ureq = { version = "3.4.2", features = ["json"] }                                       # HTTP client (sync)
+rayon = "1.12.0"                                                                        # Parallelization
+mac_address = "1.1.8"                                                                   # MAC address detection
 image = "0.25.10"                                                                       # Image processing
 ab_glyph = "0.2.32"                                                                     # Font handling / rendering
 eframe = "0.36.2"                                                                       # GUI
 egui_extras = { version = "0.36.2", features = ["image"] }                              # GUI extras
-log = "0.4.21"                                                                          # Logging
-env_logger = "0.11.2"                                                                   # Logging
-local-ip-address = "0.6.1"                                                              # Local IP address
-hostname = "0.3.1"                                                                      # Hostname
-self_update = { version = "0.44.0", features = ["rustls", "reqwest"], default-features = false }   # Self update
-md5 = "0.7.0"                                                                           # MD5 hashing for cache validation
-lru = "0.12.1"                                                                          # LRU cache for renderer assets
+log = "0.4.34"                                                                          # Logging
+env_logger = "0.11.11"                                                                  # Logging
+local-ip-address = "0.6.13"                                                             # Local IP address
+hostname = "0.4.2"                                                                      # Hostname
+self_update = { version = "1.3.0", default-features = false, features = ["github", "rustls", "reqwest"] } # Self update
+md5 = "0.8.1"                                                                           # MD5 hashing for cache validation
+lru = "0.18.4"                                                                          # LRU cache for renderer assets
 walkdir = "2.5.0"                                                                       # Directory traversal for cache cleanup
-atomic-write-file = "0.2.3"                                                             # Atomic file operations for reliability
+atomic-write-file = "0.3.1"                                                             # Atomic file operations for reliability
 
 [profile.release]
 panic = "abort" # Strip expensive panic clean-up logic

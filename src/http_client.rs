@@ -62,9 +62,10 @@ impl SensorBridgeClient {
             .map_err(|e| format!("Failed to get local IP: {e}"))?
             .to_string();
 
-        let agent = ureq::AgentBuilder::new()
-            .timeout(Duration::from_secs(10))
-            .build();
+        let agent: ureq::Agent = ureq::Agent::config_builder()
+            .timeout_global(Some(Duration::from_secs(10)))
+            .build()
+            .into();
 
         Ok(Self {
             agent,
@@ -88,31 +89,19 @@ impl SensorBridgeClient {
 
         info!("Registering client with MAC: {}", self.mac_address);
 
-        let response = self
+        let mut response = match self
             .agent
             .post(&format!("{}/api/register", self.server_url))
-            .send_json(&registration_data)?;
+            .send_json(&registration_data)
+        {
+            Ok(response) => response,
+            Err(ureq::Error::StatusCode(status)) => {
+                return Err(format!("Registration failed with status: {status}").into())
+            }
+            Err(err) => return Err(format!("Registration failed: {err}").into()),
+        };
 
-        // Check if response indicates an error (4xx, 5xx status codes)
-        let status_code = response.status();
-        if status_code >= 400 {
-            // Try to parse error response as JSON
-            let error_result: Result<serde_json::Value, _> = response.into_json();
-            return match error_result {
-                Ok(error_data) => {
-                    let error_msg = error_data
-                        .get("error")
-                        .or_else(|| error_data.get("message"))
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("Unknown error");
-                    Err(format!("Registration failed: {error_msg}").into())
-                }
-                Err(_) => Err(format!("Registration failed with status: {status_code}").into()),
-            };
-        }
-
-        // Success - parse JSON response
-        let result: serde_json::Value = response.into_json()?;
+        let result: serde_json::Value = response.body_mut().read_json()?;
 
         if result["success"] == true {
             info!("Registration successful");
@@ -131,31 +120,20 @@ impl SensorBridgeClient {
             self.server_url, self.mac_address
         );
 
-        let response = self.agent.get(&url).call()?;
-
-        // Check if response indicates an error (4xx, 5xx status codes)
-        let status_code = response.status();
-        if status_code >= 400 {
-            // Try to parse error response as JSON
-            let error_result: Result<serde_json::Value, _> = response.into_json();
-            return match error_result {
-                Ok(error_data) => {
-                    let error_msg = error_data
-                        .get("error")
-                        .or_else(|| error_data.get("message"))
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("Unknown error");
-                    Err(format!("Failed to get static data: {error_msg}").into())
-                }
-                Err(_) => {
-                    Err(format!("Failed to get static data with status: {status_code}").into())
-                }
-            };
-        }
+        let mut response = match self.agent.get(&url).call() {
+            Ok(response) => response,
+            Err(ureq::Error::StatusCode(status)) => {
+                return Err(format!("Failed to get static data with status: {status}").into())
+            }
+            Err(err) => return Err(format!("Failed to get static data: {err}").into()),
+        };
 
         // Success - process binary static data
         let mut binary_data = Vec::new();
-        response.into_reader().read_to_end(&mut binary_data)?;
+        response
+            .body_mut()
+            .as_reader()
+            .read_to_end(&mut binary_data)?;
 
         info!("Static data received, {} bytes", binary_data.len());
 
@@ -171,7 +149,8 @@ impl SensorBridgeClient {
         binary_data: &[u8],
     ) -> Result<static_data::StaticDataResult, Box<dyn error::Error + Send + Sync>> {
         // Deserialize the single StaticClientData struct from binary data
-        let static_client_data: StaticClientData = bincode::deserialize(binary_data)?;
+        let static_client_data: StaticClientData = crate::serialization::decode(binary_data)
+            .map_err(|err| -> Box<dyn error::Error + Send + Sync> { err.into() })?;
 
         info!("Processing static client data:");
         info!("  - {} font families", static_client_data.text_data.len());
@@ -200,18 +179,16 @@ impl SensorBridgeClient {
             self.server_url, self.mac_address
         );
 
-        let response = self.agent.get(&url).call();
-
-        match response {
-            Ok(resp) => match resp.into_json::<SensorDataResponse>() {
+        match self.agent.get(&url).call() {
+            Ok(mut response) => match response.body_mut().read_json::<SensorDataResponse>() {
                 Ok(data) => Ok(data),
                 Err(err) => {
                     error!("Failed to parse sensor data response: {err}");
                     Err(err.into())
                 }
             },
-            Err(ureq::Error::Status(404, _)) => Err("Client not registered".into()),
-            Err(ureq::Error::Status(403, _)) => Err("Client not active".into()),
+            Err(ureq::Error::StatusCode(404)) => Err("Client not registered".into()),
+            Err(ureq::Error::StatusCode(403)) => Err("Client not active".into()),
             Err(e) => Err(format!("Failed to get sensor data: {e}").into()),
         }
     }

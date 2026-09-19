@@ -28,13 +28,15 @@ pub fn update() {
 
     match status {
         Err(err) => error!("Failed to update: {err}"),
-        Ok(self_update::Status::UpToDate(version)) => {
+        Ok(self_update::VersionStatus::UpToDate(version)) => {
             info!("sensor-display {version} is up to date");
         }
-        Ok(self_update::Status::Updated(version)) => {
+        Ok(self_update::VersionStatus::Updated(version)) => {
             info!("sensor-display updated to {version}");
             restart_process(current_exe);
         }
+        // VersionStatus is #[non_exhaustive]: new status kinds must not break this match.
+        Ok(other) => info!("sensor-display update status: {other:?}"),
     }
 }
 
