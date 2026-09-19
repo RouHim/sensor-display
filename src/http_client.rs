@@ -15,7 +15,8 @@ use crate::renderer;
 use crate::static_data;
 use crate::ui::{SharedImageHandle, SharedStatus};
 
-const DEFAULT_SERVER_PORT: u16 = 55555;
+/// Fallback HTTP port when neither the configuration nor the command line provides one.
+pub const DEFAULT_SERVER_PORT: u16 = 55555;
 /// Polling cadence: one poll per second, scheduled on a fixed grid.
 pub const POLL_INTERVAL: Duration = Duration::from_secs(1);
 /// Re-check cadence while the protocol version does not match (never faster).
@@ -72,6 +73,13 @@ impl error::Error for ClientError {}
 pub struct StaticDataEnvelope {
     pub revision: String,
     pub data: static_data::StaticDataResult,
+}
+
+/// Response body of `POST /api/static-data/ack`.
+#[derive(Debug, Deserialize)]
+struct StaticDataAckResponse {
+    /// True only when the acked revision was still the client's current one.
+    pending_cleared: bool,
 }
 
 /// Client lifecycle state.
@@ -278,14 +286,23 @@ impl SensorBridgeClient {
     }
 
     /// Confirms that a delivered static-data revision was persisted.
-    pub fn ack_static_data(&self, revision: &str) -> Result<(), ClientError> {
+    ///
+    /// Returns whether the bridge actually cleared its pending reload flag. A
+    /// confirmation for a revision that is no longer current is answered
+    /// successfully, but with `pending_cleared: false`.
+    pub fn ack_static_data(&self, revision: &str) -> Result<bool, ClientError> {
         self.agent
             .post(&format!("{}/api/static-data/ack", self.server_url))
             .send_json(serde_json::json!({
                 "mac_address": self.mac_address,
                 "revision": revision
             }))
-            .map(|_| ())
+            .and_then(|mut response| {
+                response
+                    .body_mut()
+                    .read_json::<StaticDataAckResponse>()
+                    .map(|ack| ack.pending_cleared)
+            })
             .map_err(map_transport_error)
     }
 
@@ -441,6 +458,27 @@ fn bootstrap(client: &SensorBridgeClient) -> Result<(), ClientError> {
     Ok(())
 }
 
+/// Persists a reloaded payload and reports the bridge's confirmation truthfully.
+///
+/// The bridge answers a confirmation for a revision that is no longer current
+/// with `pending_cleared: false`, which is a successful request but not a
+/// confirmation, so it is logged as a warning naming the unmatched revision.
+fn confirm_reloaded_static_data(client: &SensorBridgeClient, envelope: &StaticDataEnvelope) {
+    if let Err(e) = static_data::persist_static_data_to_disk(&envelope.data) {
+        error!("Failed to persist updated static data: {}", e);
+        return;
+    }
+
+    match client.ack_static_data(&envelope.revision) {
+        Ok(true) => info!("Static data reloaded and confirmed"),
+        Ok(false) => warn!(
+            "Static data reloaded, but the bridge did not clear the pending flag for revision {}",
+            envelope.revision
+        ),
+        Err(e) => warn!("Failed to confirm static data: {e}"),
+    }
+}
+
 /// One poll cycle. Returns `Some(next_state)` when the loop must switch state.
 fn poll_once(
     client: &SensorBridgeClient,
@@ -461,15 +499,7 @@ fn poll_once(
             if response.static_data_reload_required {
                 info!("Static data reload required, fetching updated static data");
                 match client.get_static_data() {
-                    Ok(envelope) => {
-                        match static_data::persist_static_data_to_disk(&envelope.data) {
-                            Ok(()) => match client.ack_static_data(&envelope.revision) {
-                                Ok(()) => info!("Static data reloaded and confirmed"),
-                                Err(e) => warn!("Failed to confirm static data: {e}"),
-                            },
-                            Err(e) => error!("Failed to persist updated static data: {}", e),
-                        }
-                    }
+                    Ok(envelope) => confirm_reloaded_static_data(client, &envelope),
                     Err(ClientError::ProtocolMismatch(remote)) => {
                         enter_update_required(client_status, remote);
                         return Some(ClientState::UpdateRequired);

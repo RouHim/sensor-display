@@ -8,7 +8,7 @@ use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
 use lru::LruCache;
 
-use crate::http_client::get_local_ip_address;
+use crate::http_client::{get_local_ip_address, DEFAULT_SERVER_PORT};
 
 pub type ImageData = Vec<u8>;
 pub type ImageHandle = Option<(u128, ImageData)>;
@@ -91,7 +91,7 @@ pub fn run_ui(server_host: String, server_port: Option<u16>) -> Result<(), efram
             log::info!(
                 "HTTP client started. Server: {}:{}",
                 server_host,
-                server_port.unwrap_or(8080)
+                server_port.unwrap_or(DEFAULT_SERVER_PORT)
             );
         }
 
