@@ -3,6 +3,7 @@ use std::io::Cursor;
 use std::sync::{Arc, RwLock};
 
 use crate::ui::SharedImageHandle;
+use ab_glyph::FontVec;
 use log::{info, warn};
 use lru::LruCache;
 use sensor_core::{RenderData, SensorValue};
@@ -12,7 +13,7 @@ const MAX_SENSOR_VALUE_HISTORY: usize = 1000;
 /// Load fonts required for rendering using the font cache
 fn load_fonts_for_rendering(
     elements: &[sensor_core::ElementConfig],
-    font_cache: &Arc<RwLock<LruCache<String, rusttype::Font<'static>>>>,
+    font_cache: &Arc<RwLock<LruCache<String, FontVec>>>,
 ) -> std::collections::HashMap<String, Vec<u8>> {
     use sensor_core::ElementType;
     use std::collections::HashMap;
@@ -20,7 +21,10 @@ fn load_fonts_for_rendering(
     let mut fonts_data = HashMap::new();
 
     // Debug: Show cache base directory
-    info!("Cache base directory: {:?}", sensor_core::get_cache_base_dir());
+    info!(
+        "Cache base directory: {:?}",
+        sensor_core::get_cache_base_dir()
+    );
 
     // Find all unique font families used in text elements
     let mut required_fonts = std::collections::HashSet::new();
@@ -35,8 +39,7 @@ fn load_fonts_for_rendering(
 
     // Load each required font using the cache
     for font_family in required_fonts {
-        let font_path =
-            sensor_core::get_cache_dir(&font_family, &ElementType::Text);
+        let font_path = sensor_core::get_cache_dir(&font_family, &ElementType::Text);
         info!("Looking for font {} at path: {:?}", font_family, font_path);
 
         // Check if font is already parsed in cache
@@ -52,14 +55,14 @@ fn load_fonts_for_rendering(
 
                 // Only parse and cache if not already in cache
                 if !font_in_cache {
-                    match rusttype::Font::try_from_vec(font_bytes) {
-                        Some(parsed_font) => {
+                    match FontVec::try_from_vec(font_bytes) {
+                        Ok(parsed_font) => {
                             // Store in cache for future use
                             let mut cache = font_cache.write().unwrap();
                             cache.put(font_family.clone(), parsed_font);
                         }
-                        None => {
-                            warn!("Failed to parse font {}: invalid font data", font_family);
+                        Err(err) => {
+                            warn!("Failed to parse font {}: {}", font_family, err);
                         }
                     }
                 }
@@ -76,7 +79,7 @@ fn load_fonts_for_rendering(
 pub fn render_image(
     ui_display_image_handle: &SharedImageHandle,
     sensor_value_history: &Arc<RwLock<Vec<Vec<SensorValue>>>>,
-    font_cache: &Arc<RwLock<LruCache<String, rusttype::Font<'static>>>>,
+    font_cache: &Arc<RwLock<LruCache<String, FontVec>>>,
     render_data: RenderData,
     image_width: u16,
     image_height: u16,
@@ -117,11 +120,7 @@ pub fn render_image(
     );
 
     // Render to jpg
-    let mut image_data = Vec::new();
-    let mut cursor = Cursor::new(&mut image_data);
-    image_buffer
-        .write_to(&mut cursor, image::ImageOutputFormat::Jpeg(100))
-        .unwrap();
+    let image_data = encode_jpeg(&image_buffer);
 
     // Current unix timestamp
     let unix_timestamp_nano = std::time::SystemTime::now()
@@ -135,4 +134,33 @@ pub fn render_image(
 
     info!("Total time: {:?}", lcd_render_time.duration_since(start));
     info!("---");
+}
+
+/// Encodes a rendered frame as JPEG with quality 100.
+/// `image` 0.25 cannot encode RGBA buffers through `write_to(.., ImageFormat::Jpeg)`
+/// (it returns `Unsupported` for RGBA) and the format-based path would silently
+/// drop the quality to 75 - `JpegEncoder::encode_image` keeps both behavior and
+/// quality, dropping the alpha channel like 0.24 did.
+fn encode_jpeg(image: &image::RgbaImage) -> Vec<u8> {
+    let mut image_data = Vec::new();
+    let mut cursor = Cursor::new(&mut image_data);
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, 100)
+        .encode_image(image)
+        .expect("failed to encode the rendered frame as jpeg");
+    image_data
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encodes_an_rgba_frame_as_decodable_jpeg() {
+        let image = image::RgbaImage::from_pixel(8, 4, image::Rgba([255, 0, 0, 255]));
+
+        let bytes = encode_jpeg(&image);
+
+        let decoded = image::load_from_memory(&bytes).expect("frame must be a decodable JPEG");
+        assert_eq!((decoded.width(), decoded.height()), (8, 4));
+    }
 }

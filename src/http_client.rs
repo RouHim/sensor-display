@@ -220,7 +220,7 @@ impl SensorBridgeClient {
 /// Start HTTP client and begin polling for sensor data
 pub fn start_http_client(
     ui_display_image_handle: SharedImageHandle,
-    font_cache: Arc<RwLock<lru::LruCache<String, rusttype::Font<'static>>>>,
+    font_cache: Arc<RwLock<lru::LruCache<String, ab_glyph::FontVec>>>,
     server_host: String,
     server_port: Option<u16>,
     resolution: (u16, u16),
@@ -343,7 +343,7 @@ fn handle_render_data(
     ui_display_image_handle: &SharedImageHandle,
     render_busy_indicator: &Arc<RwLock<bool>>,
     sensor_value_history: &Arc<RwLock<Vec<Vec<SensorValue>>>>,
-    font_cache: &Arc<RwLock<lru::LruCache<String, rusttype::Font<'static>>>>,
+    font_cache: &Arc<RwLock<lru::LruCache<String, ab_glyph::FontVec>>>,
     render_data: RenderData,
     image_width: u16,
     image_height: u16,

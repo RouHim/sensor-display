@@ -3,6 +3,7 @@ use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+use ab_glyph::FontVec;
 use eframe::egui;
 use eframe::egui::{ImageSource, Vec2};
 use lru::LruCache;
@@ -15,7 +16,7 @@ pub type SharedImageHandle = Arc<RwLock<ImageHandle>>;
 
 /// LRU cache for renderer assets to reduce disk I/O
 const FONT_CACHE_SIZE: usize = 3;
-type FontCache = LruCache<String, rusttype::Font<'static>>;
+type FontCache = LruCache<String, FontVec>;
 
 /// Builds the standby text
 fn build_standby_text(local_ip: &str, hostname: &str, display_resolution: &str) -> String {
@@ -60,9 +61,11 @@ pub fn run_ui(server_host: String, server_port: Option<u16>) -> Result<(), efram
     let http_client_started = Arc::new(RwLock::new(false));
 
     // Render loop
-    eframe::run_simple_native("Sensor Display", native_options, move |ctx, _frame| {
-        let display_width = ctx.screen_rect().width() as u16;
-        let display_height = ctx.screen_rect().height() as u16;
+    eframe::run_ui_native("Sensor Display", native_options, move |ui, _frame| {
+        let ctx = ui.ctx().clone();
+
+        let display_width = ctx.content_rect().width() as u16;
+        let display_height = ctx.content_rect().height() as u16;
         let resolution = format!("{}x{}", display_width, display_height);
 
         // Start HTTP client on first frame when we have the screen resolution
@@ -87,7 +90,7 @@ pub fn run_ui(server_host: String, server_port: Option<u16>) -> Result<(), efram
         }
 
         // Install image loaders
-        egui_extras::install_image_loaders(ctx);
+        egui_extras::install_image_loaders(&ctx);
 
         // Do not show the cursor
         ctx.set_cursor_icon(egui::CursorIcon::None);
@@ -95,9 +98,9 @@ pub fn run_ui(server_host: String, server_port: Option<u16>) -> Result<(), efram
         // Reduced display update frequency to reduce system load
         ctx.request_repaint_after(Duration::from_millis(250));
 
-        egui::Area::new("main_area")
+        egui::Area::new(egui::Id::new("main_area"))
             .fixed_pos(egui::pos2(0.0, 0.0))
-            .show(ctx, |ui| {
+            .show(&ctx, |ui| {
                 let mut image_mutex = image_data_mutex.write().unwrap();
                 let mut cached_image_index = cached_image_index.write().unwrap();
 
@@ -112,8 +115,8 @@ pub fn run_ui(server_host: String, server_port: Option<u16>) -> Result<(), efram
                         image_data.1.clone(),
                     ));
                     let image = egui::Image::new(image_source).fit_to_exact_size(Vec2::new(
-                        ctx.screen_rect().width(),
-                        ctx.screen_rect().height(),
+                        ctx.content_rect().width(),
+                        ctx.content_rect().height(),
                     ));
                     ui.add(image);
 
@@ -144,8 +147,8 @@ pub fn run_ui(server_host: String, server_port: Option<u16>) -> Result<(), efram
                     let image_source =
                         ImageSource::from((format!("bytes://{frame_number}.jpg"), Vec::new()));
                     let image = egui::Image::new(image_source).fit_to_exact_size(Vec2::new(
-                        ctx.screen_rect().width(),
-                        ctx.screen_rect().height(),
+                        ctx.content_rect().width(),
+                        ctx.content_rect().height(),
                     ));
                     ui.add(image);
                 }
