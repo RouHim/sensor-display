@@ -1,3 +1,10 @@
+## [1.20.24](https://github.com/RouHim/sensor-display/compare/1.20.23...1.20.24) (2026-10-14)
+
+
+### Bug Fixes
+
+* **ci:** make VERSION detection robust against rate limits ([7be20e5](https://github.com/RouHim/sensor-display/commit/7be20e5b7d947c46aed89a18ac35fb5eecd41945))
+
 ## [1.20.23](https://github.com/RouHim/sensor-display/compare/1.20.22...1.20.23) (2026-09-20)
 
 ## [1.20.22](https://github.com/RouHim/sensor-display/compare/1.20.21...1.20.22) (2026-09-18)
